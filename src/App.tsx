@@ -1,9 +1,5 @@
-import Dashboard from "./Dashboard";
+import DashboardLayout from './layouts/DashboardLayout';
 
-function App() {
-  return (
-    <Dashboard />
-  );
+export default function App() {
+    return <DashboardLayout />;
 }
-
-export default App;

@@ -1,0 +1,93 @@
+.sidebar {
+    width: 240px;
+    background-color: #1f2937;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    flex-shrink: 0;
+}
+
+.sidebar-top {
+    padding: 0 20px 30px;
+}
+
+.logo-box {
+    width: 60px;
+    height: 60px;
+    background-color: #374151;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.sidebar-logo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 0 20px;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 0;
+    overflow: visible;
+}
+
+.sidebar-nav li {
+    padding: 10px 0;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #d1d5db;
+    background-color: transparent;
+    border-radius: 0;
+}
+
+.sidebar-nav li:hover {
+    color: white;
+    background-color: transparent;
+}
+
+.sidebar-nav li.active {
+    font-weight: bold;
+    color: white;
+}
+
+.sidebar-bottom {
+    padding: 20px;
+}
+
+.sign-out-btn {
+    background: none;
+    border: none;
+    color: #d1d5db;
+    padding: 0;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.sign-out-btn:hover {
+    color: white;
+    border-color: transparent;
+}
+
+.sidebar-icon {
+    font-size: 1.1rem;
+}
