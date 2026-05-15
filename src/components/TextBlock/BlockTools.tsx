@@ -24,7 +24,7 @@ export default function BlockTools({ setBlocks }: Props) {
                 id: crypto.randomUUID(),
                 type: "questionnaire",
                 content: {
-                    text: "",
+                    questions: [],
                 },
             },
         ]);

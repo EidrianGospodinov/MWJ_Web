@@ -24,13 +24,13 @@ export type Question = {
     questionText: string;
 
     answers: Answer[];
+    points: 10;
 };
 
 export type QuestionnaireBlockType = BaseBlock & {
     type: "questionnaire";
 
     content: {
-        text: string;
         questions: Question[];
     };
 };

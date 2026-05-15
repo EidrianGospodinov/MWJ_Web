@@ -31,7 +31,7 @@ export default function TextBlock({ block, setBlocks }: Props) {
         <textarea
             value={block.content.text}
             onChange={(e) => updateText(e.target.value)}
-            placeholder="Write text()..."
+            placeholder="Write text..."
         />
     );
 }
