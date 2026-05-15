@@ -116,7 +116,7 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
                 }
             )
         )
-    const editAnswerText = (questionId: string, answerId: string, newAnswerText: string) => {
+    const updateAnswer = (questionId: string, answerId: string, changes: Partial<Answer>) => {
         setBlocks((oldBlocks) =>
             oldBlocks.map((currentBlock) => {
                     if (currentBlock.id !== block.id) {
@@ -138,10 +138,10 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
                                                 if(answer.id !== answerId){
                                                     return answer;
                                                 }
-                                                console.log("answer update to: " + newAnswerText);
+                                                
                                                 return {
                                                     ...answer,
-                                                    answerText: newAnswerText,
+                                                    ...changes
                                                 }
                                                 }
                                             )
@@ -167,7 +167,7 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
             </button>
 
             {block.content.questions.map(
-                (question: any) => (
+                (question: Question) => (
                     <div key={question.id}>
                         <textarea
                             value={question.questionText}
@@ -178,15 +178,20 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
                             Add Answer
                         </button>
 
-                        {question.answers.map((answer: any) => (
+                        {question.answers.map((answer: Answer) => (
 
-                            <textarea
+                            <span><textarea
                                 key={answer.id}
 
                                 value={answer.answerText}
-                                onChange={(e) => editAnswerText(question.id, answer.id, e.target.value)}
+                                onChange={(e) => updateAnswer(question.id, answer.id, 
+                                    {answerText: e.target.value})}//Doing this to partially change the Answer(only text)
                                 placeholder="Write Answer..."
                             />
+                            <input type="checkbox" checked={answer.isCorrect} onChange={(e)=> 
+                                updateAnswer(question.id, answer.id,
+                                    {isCorrect: e.target.checked})}/>
+                            </span>
 
                         ))}
 
