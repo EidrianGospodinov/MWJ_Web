@@ -10,7 +10,7 @@ type Props = {
 };
 
 export default function QuestionnaireBlock({block, setBlocks,}: Props) {
-
+    const maxAnswers = 4;
     const addQuestion = () => {
         setBlocks((oldBlocks) =>
             oldBlocks.map((currentBlock) => {
@@ -43,40 +43,78 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
             })
         );
     };
-    const updateQuestionText= (questionId: string, newQuestionText: string) =>
-    {
+    const updateQuestionText = (questionId: string, newQuestionText: string) => {
         setBlocks((oldBlocks) =>
             oldBlocks.map((currentBlock) => {
-                
+
                     if (currentBlock.id !== block.id) {
                         return currentBlock;
                     }
-                    return{
+                    return {
                         ...currentBlock,
-                        
+
                         content: {
-                            
+
                             ...currentBlock.content,
                             questions:
-                            currentBlock.content.questions.map(
-                                (question: any) => {
-                                    if(question.id !== questionId){
-                                        return question;
+                                currentBlock.content.questions.map(
+                                    (question: any) => {
+                                        if (question.id !== questionId) {
+                                            return question;
+                                        }
+                                        console.log("question update to: " + newQuestionText);
+                                        return {
+                                            ...question,
+                                            questionText: newQuestionText,
+                                        };
                                     }
-                                    console.log("question update to: " + newQuestionText);
-                                    return{
-                                        ...question,
-                                        questionText: newQuestionText,
-                                    };
-                                }
-                            )
-                            
+                                )
+
                         }
                     }
-                    
+
                 }
             ));
     }
+    const addAnswer = (questionId: string) =>
+        setBlocks((oldBlocks) =>
+            oldBlocks.map((currentBlock) => {
+                    if (currentBlock.id !== block.id) {
+                        return currentBlock;
+                    }
+                    return {
+                        ...currentBlock,
+
+                        content: {
+                            ...currentBlock.content,
+                            questions: currentBlock.content.questions.map((question: any) => {
+                                    if (question.id !== questionId) {
+                                        return question;
+                                    }
+                                    if(question.answers.length >= maxAnswers){
+                                        return question;
+                                    }
+                                    return {
+                                        ...question,
+                                        answers: [
+                                            ...question.answers,
+                                            {
+                                                id: crypto.randomUUID(),
+                                                answerText: "",
+                                                isCorrect: false,
+
+                                            }
+                                        ]
+                                    }
+                                }
+                            )
+
+                        },
+                    };
+                }
+            )
+        )
+
 
     return (
         <div>
@@ -87,13 +125,30 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
 
             {block.content.questions.map(
                 (question: any) => (
-                    <textarea
-                        key={question.id}
+                    <div key={question.id}>
+                        <textarea
+                            value={question.questionText}
+                            onChange={(e) => updateQuestionText(question.id, e.target.value)}
+                            placeholder="Write Question..."
+                        />
+                        <button onClick={() => addAnswer(question.id)}>
+                            Add Answer
+                        </button>
 
-                        value={question.questionText}
-                        onChange={(e) => updateQuestionText(question.id, e.target.value)}
-                        placeholder="Write Question..."
-                    />
+                        {question.answers.map((answer: any) => (
+
+                            <textarea
+                                key={answer.id}
+
+                                value={answer.answerText}
+
+                                placeholder="Write Answer..."
+                            />
+
+                        ))}
+
+                    </div>
+
                 )
             )}
 
