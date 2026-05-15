@@ -1,14 +1,15 @@
 import React from "react";
 import type {
-    TextBlockType,
+    QuestionnaireBlockType,
 } from "../../types/Blocks";
 
+
 type Props = {
-    block: TextBlockType;
+    block: QuestionnaireBlockType;
     setBlocks: React.Dispatch<React.SetStateAction<any[]>>;
 };
 
-export default function TextBlock({ block, setBlocks }: Props) {
+export default function QuestionnaireBlock({ block, setBlocks }: Props) {
     const updateText = (newText: string) => {
         setBlocks((oldBlocks) =>
             oldBlocks.map((currentBlock) => {
@@ -31,7 +32,7 @@ export default function TextBlock({ block, setBlocks }: Props) {
         <textarea
             value={block.content.text}
             onChange={(e) => updateText(e.target.value)}
-            placeholder="Write text()..."
+            placeholder="Write Question..."
         />
     );
 }

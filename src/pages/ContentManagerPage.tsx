@@ -1,31 +1,17 @@
-import { useState } from 'react';
-import { client } from '../client';
+import {useState} from 'react';
+import {client} from '../client';
 import TextBlock from '../components/TextBlock/TextBlock';
+import BlockTools from "../components/TextBlock/BlockTools.tsx";
+import type {
+    Block,
+} from "../types/Blocks";
+import QuestionnaireBlock from "../components/TextBlock/QuestionnaireBlock.tsx";
 
-type Block = {
-    id: string;
-    type: 'text';
-    content: { text: string };
-};
 
 export default function ContentManagerPage() {
     const [blocks, setBlocks] = useState<Block[]>([]);
-
-    const addTextBlock = () => {
-        setBlocks((prev) => [
-            ...prev,
-            { id: crypto.randomUUID(), type: 'text', content: { text: '' } },
-        ]);
-    };
-
-    const updateTextBlock = (id: string, text: string) => {
-        setBlocks((prev) =>
-            prev.map((block) =>
-                block.id === id ? { ...block, content: { ...block.content, text } } : block
-            )
-        );
-    };
-
+    const [showJson, setShowJson] = useState(false);
+    
     const saveData = async () => {
         const result = await client.models.ContentManagement.create({
             title: 'My First ',
@@ -40,15 +26,41 @@ export default function ContentManagerPage() {
             <div className="content-placeholder">
                 <p>Manage your posts, images, and other media here.</p>
                 <button onClick={saveData}>Save Data</button>
-                <button onClick={addTextBlock}>Add Text Block</button>
-                {blocks.map((block) => (
-                    <TextBlock
-                        key={block.id}
-                        value={block.content.text}
-                        onChange={(text) => updateTextBlock(block.id, text)}
-                    />
-                ))}
-                <pre>{JSON.stringify(blocks, null, 2)}</pre>
+                <BlockTools setBlocks={setBlocks} />
+                
+                {blocks.map((block) => {
+                    if (block.type === "text") {
+                        return (
+                            <TextBlock
+                                key={block.id}
+                                block={block}
+                                setBlocks={setBlocks}
+                            />
+                        );
+                    }else if (block.type === "questionnaire") {
+                        
+                        return (
+                            <QuestionnaireBlock
+                                key={block.id}
+                                block={block}
+                                setBlocks={setBlocks}
+                            />
+                        );
+                    }
+
+
+                    return null;
+                })}
+                
+                
+                <button onClick={() =>
+                    setShowJson((prev) => !prev)
+                }> Show Json
+                </button>
+                {showJson && (<pre>
+                    {JSON.stringify(blocks, null, 2)}
+                </pre>
+                )}
             </div>
         </section>
     );
