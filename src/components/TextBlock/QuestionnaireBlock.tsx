@@ -1,5 +1,7 @@
 import React from "react";
 import type {
+    Answer,
+    Question,
     QuestionnaireBlockType,
 } from "../../types/Blocks";
 
@@ -58,7 +60,7 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
                             ...currentBlock.content,
                             questions:
                                 currentBlock.content.questions.map(
-                                    (question: any) => {
+                                    (question: Question) => {
                                         if (question.id !== questionId) {
                                             return question;
                                         }
@@ -87,11 +89,11 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
 
                         content: {
                             ...currentBlock.content,
-                            questions: currentBlock.content.questions.map((question: any) => {
+                            questions: currentBlock.content.questions.map((question: Question) => {
                                     if (question.id !== questionId) {
                                         return question;
                                     }
-                                    if(question.answers.length >= maxAnswers){
+                                    if (question.answers.length >= maxAnswers) {
                                         return question;
                                     }
                                     return {
@@ -114,7 +116,48 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
                 }
             )
         )
+    const editAnswerText = (questionId: string, answerId: string, newAnswerText: string) => {
+        setBlocks((oldBlocks) =>
+            oldBlocks.map((currentBlock) => {
+                    if (currentBlock.id !== block.id) {
+                        return currentBlock;
+                    }
+                    return {
+                        ...currentBlock,
+                        content: {
+                            ...currentBlock.content,
+                            questions:
+                                currentBlock.content.questions.map((question: Question) => {
+                                        if (question.id !== questionId) {
+                                            return question;
+                                        }
+                                        return{
+                                            ...question,
+                                            answers: 
+                                            question.answers.map((answer: Answer) => {
+                                                if(answer.id !== answerId){
+                                                    return answer;
+                                                }
+                                                console.log("answer update to: " + newAnswerText);
+                                                return {
+                                                    ...answer,
+                                                    answerText: newAnswerText,
+                                                }
+                                                }
+                                            )
+                                            
+                                        }
+                                    }
+                                )
 
+                        }
+
+                    }
+                }
+            )
+        )
+
+    }
 
     return (
         <div>
@@ -141,7 +184,7 @@ export default function QuestionnaireBlock({block, setBlocks,}: Props) {
                                 key={answer.id}
 
                                 value={answer.answerText}
-
+                                onChange={(e) => editAnswerText(question.id, answer.id, e.target.value)}
                                 placeholder="Write Answer..."
                             />
 
