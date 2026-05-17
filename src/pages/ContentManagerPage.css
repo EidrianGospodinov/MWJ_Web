@@ -290,6 +290,28 @@
     background: #fafafa;
 }
 
+.cm-existing__row--editing {
+    border-color: #5b6af5;
+    box-shadow: 0 0 0 3px rgba(91, 106, 245, 0.12);
+}
+
+.cm-existing__edit {
+    padding: 5px 12px;
+    border: 1.5px solid #c5cae9;
+    border-radius: 6px;
+    background: #f3f4ff;
+    color: #3949ab;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.cm-existing__edit:hover {
+    background: #e8eaf6;
+    border-color: #9fa8da;
+}
+
 .cm-existing__delete {
     padding: 5px 12px;
     border: 1.5px solid #ffcdd2;

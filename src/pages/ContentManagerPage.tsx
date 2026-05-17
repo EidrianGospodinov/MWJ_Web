@@ -34,6 +34,7 @@ export default function ContentManagerPage() {
     const [dropIdx,  setDropIdx]  = React.useState<number | null>(null);
     const [showList, setShowList] = React.useState(false);
     const [savedContent, setSavedContent] = React.useState<Schema['ContentManagement']['type'][]>([]);
+    const [editingId,    setEditingId]    = React.useState<string | null>(null);
 
     const activeBlock = blocks.find((b) => b.id === activeId) ?? null;
 
@@ -77,21 +78,38 @@ export default function ContentManagerPage() {
             return;
         }
         try {
-            const createdBy = await getCurrentUser()
-                .then((u) => u.signInDetails?.loginId ?? u.username)
-                .catch(() => undefined);
-            const result = await client.models.ContentManagement.create({
-                title,
-                blocks: JSON.stringify(blocks),
-                visibility: 'Public',
-                createdBy,
-            });
-            console.log('saved', result);
+            if (editingId) {
+                const result = await client.models.ContentManagement.update({
+                    id: editingId,
+                    title,
+                    blocks: JSON.stringify(blocks),
+                });
+                console.log('updated', result);
+            } else {
+                const createdBy = await getCurrentUser()
+                    .then((u) => u.signInDetails?.loginId ?? u.username)
+                    .catch(() => undefined);
+                const result = await client.models.ContentManagement.create({
+                    title,
+                    blocks: JSON.stringify(blocks),
+                    visibility: 'Public',
+                    createdBy,
+                });
+                console.log('saved', result);
+            }
+            setEditingId(null);
             await fetchContent();
         } catch (err) {
             console.error('Save failed', err);
             alert('Save failed. Please try again.');
         }
+    };
+
+    const startEdit = (item: Schema['ContentManagement']['type']) => {
+        setTitle(item.title);
+        setBlocks(JSON.parse(String(item.blocks ?? '[]')));
+        setEditingId(item.id);
+        setActiveId(null);
     };
 
     const fetchContent = async () => {
@@ -118,6 +136,7 @@ export default function ContentManagerPage() {
         setBlocks([]);
         setActiveId(null);
         setShowList(false);
+        setEditingId(null);
     };
 
     return (
@@ -230,7 +249,7 @@ export default function ContentManagerPage() {
                     Add
                 </button>
                 <button className="cm-action cm-action--submit" onClick={saveData}>
-                    Preview &amp; Submit
+                    {editingId ? 'Save Changes' : 'Preview & Submit'}
                 </button>
             </div>
 
@@ -241,7 +260,7 @@ export default function ContentManagerPage() {
                 ) : (
                     <div className="cm-existing__list">
                         {savedContent.map((item) => (
-                            <div key={item.id} className="cm-existing__row">
+                            <div key={item.id} className={`cm-existing__row${editingId === item.id ? ' cm-existing__row--editing' : ''}`}>
                                 <div className="cm-existing__info">
                                     <span className="cm-existing__title">{item.title}</span>
                                     <span className="cm-existing__meta">
@@ -261,6 +280,12 @@ export default function ContentManagerPage() {
                                         <option value="Public">Public</option>
                                         <option value="Private">Private</option>
                                     </select>
+                                    <button
+                                        className="cm-existing__edit"
+                                        onClick={() => startEdit(item)}
+                                    >
+                                        Edit
+                                    </button>
                                     <button
                                         className="cm-existing__delete"
                                         onClick={() => deleteContent(item.id)}
