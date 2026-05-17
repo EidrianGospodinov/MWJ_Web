@@ -11,6 +11,8 @@ const schema = a.schema({
     .model({
       title: a.string().required(),
       blocks: a.json().required(),
+      visibility: a.string(),
+      createdBy: a.string(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 });

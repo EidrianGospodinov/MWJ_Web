@@ -205,3 +205,104 @@
 }
 
 .cm-action--submit:hover { opacity: 0.85; }
+
+.cm-existing {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.cm-existing__heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 0;
+}
+
+.cm-existing__list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cm-existing__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1.5px solid #ebebeb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.cm-existing__info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.cm-existing__title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cm-existing__meta {
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.cm-existing__controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.cm-vis-select {
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1.5px solid #ddd;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    background: #fff;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.cm-vis-select--public {
+    border-color: #a5d6a7;
+    color: #2e7d32;
+    background: #f1f8e9;
+}
+
+.cm-vis-select--private {
+    border-color: #e0e0e0;
+    color: #757575;
+    background: #fafafa;
+}
+
+.cm-existing__delete {
+    padding: 5px 12px;
+    border: 1.5px solid #ffcdd2;
+    border-radius: 6px;
+    background: #fff5f5;
+    color: #e53935;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.cm-existing__delete:hover {
+    background: #ffebee;
+    border-color: #ef9a9a;
+}

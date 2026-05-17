@@ -1,5 +1,7 @@
 import React from 'react';
+import { getCurrentUser } from 'aws-amplify/auth';
 import { client } from '../client';
+import type { Schema } from '../../amplify/data/resource';
 import type { Block } from '../types/Blocks';
 import BlockItem from '../components/BlockItem/BlockItem';
 import BlockPreview from '../components/BlockPreview/BlockPreview';
@@ -31,6 +33,7 @@ export default function ContentManagerPage() {
     const [dragIdx,  setDragIdx]  = React.useState<number | null>(null);
     const [dropIdx,  setDropIdx]  = React.useState<number | null>(null);
     const [showList, setShowList] = React.useState(false);
+    const [savedContent, setSavedContent] = React.useState<Schema['ContentManagement']['type'][]>([]);
 
     const activeBlock = blocks.find((b) => b.id === activeId) ?? null;
 
@@ -74,16 +77,41 @@ export default function ContentManagerPage() {
             return;
         }
         try {
+            const createdBy = await getCurrentUser()
+                .then((u) => u.signInDetails?.loginId ?? u.username)
+                .catch(() => undefined);
             const result = await client.models.ContentManagement.create({
                 title,
                 blocks: JSON.stringify(blocks),
+                visibility: 'Public',
+                createdBy,
             });
             console.log('saved', result);
+            await fetchContent();
         } catch (err) {
             console.error('Save failed', err);
             alert('Save failed. Please try again.');
         }
     };
+
+    const fetchContent = async () => {
+        const { data } = await client.models.ContentManagement.list();
+        setSavedContent(data);
+    };
+
+    const deleteContent = async (id: string) => {
+        await client.models.ContentManagement.delete({ id });
+        await fetchContent();
+    };
+
+    const updateVisibility = async (id: string, visibility: string) => {
+        await client.models.ContentManagement.update({ id, visibility });
+        await fetchContent();
+    };
+
+    React.useEffect(() => {
+        fetchContent();
+    }, []);
 
     const handleCancel = () => {
         setTitle('');
@@ -204,6 +232,46 @@ export default function ContentManagerPage() {
                 <button className="cm-action cm-action--submit" onClick={saveData}>
                     Preview &amp; Submit
                 </button>
+            </div>
+
+            <div className="cm-existing">
+                <h2 className="cm-existing__heading">Existing Content</h2>
+                {savedContent.length === 0 ? (
+                    <p className="cm-empty-state">No saved content yet.</p>
+                ) : (
+                    <div className="cm-existing__list">
+                        {savedContent.map((item) => (
+                            <div key={item.id} className="cm-existing__row">
+                                <div className="cm-existing__info">
+                                    <span className="cm-existing__title">{item.title}</span>
+                                    <span className="cm-existing__meta">
+                                        {item.createdAt
+                                            ? new Date(item.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+                                            : '—'}
+                                        {' · '}
+                                        {item.createdBy ?? 'N/A'}
+                                    </span>
+                                </div>
+                                <div className="cm-existing__controls">
+                                    <select
+                                        className={`cm-vis-select cm-vis-select--${(item.visibility ?? 'Public').toLowerCase()}`}
+                                        value={item.visibility ?? 'Public'}
+                                        onChange={(e) => updateVisibility(item.id, e.target.value)}
+                                    >
+                                        <option value="Public">Public</option>
+                                        <option value="Private">Private</option>
+                                    </select>
+                                    <button
+                                        className="cm-existing__delete"
+                                        onClick={() => deleteContent(item.id)}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </section>
     );
