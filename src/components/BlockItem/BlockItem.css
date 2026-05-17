@@ -1,0 +1,70 @@
+.block-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1.5px solid #e8e8e8;
+    background: #fafafa;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    user-select: none;
+}
+
+.block-item:hover {
+    border-color: #c0c4ff;
+    background: #f5f6ff;
+}
+
+.block-item--active {
+    border-color: #5b6af5;
+    background: #eef0ff;
+    box-shadow: 0 0 0 3px rgba(91, 106, 245, 0.15);
+}
+
+.block-item--dragging {
+    opacity: 0.4;
+}
+
+.block-item--drag-over {
+    border-color: #5b6af5;
+    border-style: dashed;
+    background: #f0f2ff;
+}
+
+.block-item__handle {
+    font-size: 1.15rem;
+    color: #ccc;
+    cursor: grab;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.block-item__handle:active {
+    cursor: grabbing;
+}
+
+.block-item__label {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.block-item__delete {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 3px 7px;
+    border-radius: 5px;
+    line-height: 1;
+    transition: background 0.12s, color 0.12s;
+    flex-shrink: 0;
+}
+
+.block-item__delete:hover {
+    background: #ffe0e0;
+    color: #d32f2f;
+}

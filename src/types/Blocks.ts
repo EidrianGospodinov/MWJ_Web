@@ -35,6 +35,26 @@ export type QuestionnaireBlockType = BaseBlock & {
     };
 };
 
+export type ImageBlockType = BaseBlock & {
+    type: "image";
+    content: {
+        dataUrl?: string;
+        fileName?: string;
+        alt?: string;
+    };
+};
+
+export type VideoBlockType = BaseBlock & {
+    type: "video";
+    content: {
+        dataUrl?: string;
+        fileName?: string;
+        title?: string;
+    };
+};
+
 export type Block =
     | TextBlockType
-    | QuestionnaireBlockType;
+    | QuestionnaireBlockType
+    | ImageBlockType
+    | VideoBlockType;

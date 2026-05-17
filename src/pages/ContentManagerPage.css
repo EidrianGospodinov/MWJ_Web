@@ -1,0 +1,207 @@
+/* ── Page shell ──────────────────────────────────────────────── */
+.cm-page {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 64px);
+    padding: 32px 40px;
+    background: #f4f5f7;
+    gap: 24px;
+    box-sizing: border-box;
+}
+
+.cm-heading {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 0;
+}
+
+/* ── Two-column body ─────────────────────────────────────────── */
+.cm-body {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+    align-items: flex-start;
+}
+
+/* ── Left column ─────────────────────────────────────────────── */
+.cm-left {
+    flex: 0 0 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ── Right column ────────────────────────────────────────────── */
+.cm-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+/* ── Cards ───────────────────────────────────────────────────── */
+.cm-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cm-section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #999;
+}
+
+/* ── Title input ─────────────────────────────────────────────── */
+.cm-title-input {
+    padding: 10px 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #222;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cm-title-input:focus {
+    border-color: #5b6af5;
+}
+
+/* ── Add block buttons ───────────────────────────────────────── */
+.cm-add-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cm-add-btn {
+    padding: 10px 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.cm-add-btn:active { transform: scale(0.97); }
+
+.cm-add-btn--text          { background: #eef0ff; color: #3b4acc; }
+.cm-add-btn--questionnaire { background: #e8f5e9; color: #2e7d32; }
+.cm-add-btn--image         { background: #fff3e0; color: #e65100; }
+.cm-add-btn--video         { background: #fce4ec; color: #ad1457; }
+
+.cm-add-btn--text:hover          { background: #dce0ff; }
+.cm-add-btn--questionnaire:hover { background: #c8e6c9; }
+.cm-add-btn--image:hover         { background: #ffe0b2; }
+.cm-add-btn--video:hover         { background: #f8bbd0; }
+
+/* ── Block list ──────────────────────────────────────────────── */
+.cm-block-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cm-empty-state {
+    font-size: 0.9rem;
+    color: #bbb;
+    text-align: center;
+    padding: 16px 0;
+    margin: 0;
+}
+
+/* ── List-all toggle ─────────────────────────────────────────── */
+.cm-list-toggle {
+    align-self: flex-start;
+    background: none;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    color: #666;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.cm-list-toggle:hover {
+    border-color: #5b6af5;
+    color: #5b6af5;
+}
+
+/* ── Block directory ─────────────────────────────────────────── */
+.cm-directory-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cm-directory-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.cm-directory-index {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #bbb;
+    min-width: 28px;
+}
+
+/* ── Footer actions ──────────────────────────────────────────── */
+.cm-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 4px;
+}
+
+.cm-action {
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.cm-action:active { transform: scale(0.97); }
+
+.cm-action--cancel {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.cm-action--cancel:hover { background: #e4e4e4; }
+
+.cm-action--add {
+    background: #5b6af5;
+    color: #fff;
+}
+
+.cm-action--add:hover { opacity: 0.88; }
+
+.cm-action--submit {
+    background: #1a1a2e;
+    color: #fff;
+}
+
+.cm-action--submit:hover { opacity: 0.85; }

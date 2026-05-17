@@ -1,66 +1,209 @@
-import {useState} from 'react';
-import {client} from '../client';
-import TextBlock from '../components/TextBlock/TextBlock';
-import BlockTools from "../components/TextBlock/BlockTools.tsx";
-import type {
-    Block,
-} from "../types/Blocks";
-import QuestionnaireBlock from "../components/TextBlock/QuestionnaireBlock.tsx";
+import React from 'react';
+import { client } from '../client';
+import type { Block } from '../types/Blocks';
+import BlockItem from '../components/BlockItem/BlockItem';
+import BlockPreview from '../components/BlockPreview/BlockPreview';
+import './ContentManagerPage.css';
 
+type BlockType = Block['type'];
+
+const BLOCK_BUTTONS: { type: BlockType; label: string }[] = [
+    { type: 'text',          label: 'Text' },
+    { type: 'questionnaire', label: 'Questionnaire' },
+    { type: 'image',         label: 'Upload Image' },
+    { type: 'video',         label: 'Upload Video' },
+];
+
+function makeBlock(type: BlockType): Block {
+    const id = crypto.randomUUID();
+    switch (type) {
+        case 'text':          return { id, type, content: { text: '' } };
+        case 'questionnaire': return { id, type, content: { questions: [] } };
+        case 'image':         return { id, type, content: {} };
+        case 'video':         return { id, type, content: {} };
+    }
+}
 
 export default function ContentManagerPage() {
-    const [blocks, setBlocks] = useState<Block[]>([]);
-    const [showJson, setShowJson] = useState(false);
-    
+    const [title,    setTitle]    = React.useState('');
+    const [blocks,   setBlocks]   = React.useState<Block[]>([]);
+    const [activeId, setActiveId] = React.useState<string | null>(null);
+    const [dragIdx,  setDragIdx]  = React.useState<number | null>(null);
+    const [dropIdx,  setDropIdx]  = React.useState<number | null>(null);
+    const [showList, setShowList] = React.useState(false);
+
+    const activeBlock = blocks.find((b) => b.id === activeId) ?? null;
+
+    // ── Block CRUD ────────────────────────────────────────────
+    const addBlock = (type: BlockType) => {
+        const b = makeBlock(type);
+        setBlocks((prev) => [...prev, b]);
+        setActiveId(b.id);
+    };
+
+    const deleteBlock = (id: string) => {
+        setBlocks((prev) => prev.filter((b) => b.id !== id));
+        if (activeId === id) setActiveId(null);
+    };
+
+    // ── Drag & drop ───────────────────────────────────────────
+    const onDragStart = (i: number) => setDragIdx(i);
+
+    const onDragOver = (e: React.DragEvent<HTMLDivElement>, i: number) => {
+        e.preventDefault();
+        setDropIdx(i);
+    };
+
+    const onDrop = (e: React.DragEvent<HTMLDivElement>, i: number) => {
+        e.preventDefault();
+        if (dragIdx === null || dragIdx === i) return;
+        const next = [...blocks];
+        const [moved] = next.splice(dragIdx, 1);
+        next.splice(i, 0, moved);
+        setBlocks(next);
+        setDragIdx(null);
+        setDropIdx(null);
+    };
+
+    const onDragEnd = () => { setDragIdx(null); setDropIdx(null); };
+
+    // ── Persistence ───────────────────────────────────────────
     const saveData = async () => {
-        const result = await client.models.ContentManagement.create({
-            title: 'My First ',
-            blocks: JSON.stringify(blocks),
-        });
-        console.log('saved', result);
+        if (!title.trim()) {
+            alert('Please enter a module title before saving.');
+            return;
+        }
+        try {
+            const result = await client.models.ContentManagement.create({
+                title,
+                blocks: JSON.stringify(blocks),
+            });
+            console.log('saved', result);
+        } catch (err) {
+            console.error('Save failed', err);
+            alert('Save failed. Please try again.');
+        }
+    };
+
+    const handleCancel = () => {
+        setTitle('');
+        setBlocks([]);
+        setActiveId(null);
+        setShowList(false);
     };
 
     return (
-        <section className="content-area">
-            <h1>Content Manager</h1>
-            <div className="content-placeholder">
-                <p>Manage your posts, images, and other media here.</p>
-                <button onClick={saveData}>Save Data</button>
-                <BlockTools setBlocks={setBlocks} />
-                
-                {blocks.map((block) => {
-                    if (block.type === "text") {
-                        return (
-                            <TextBlock
-                                key={block.id}
-                                block={block}
-                                setBlocks={setBlocks}
-                            />
-                        );
-                    }else if (block.type === "questionnaire") {
-                        
-                        return (
-                            <QuestionnaireBlock
-                                key={block.id}
-                                block={block}
-                                setBlocks={setBlocks}
-                            />
-                        );
-                    }
+        <section className="content-area cm-page">
+            <h1 className="cm-heading">Content Manager</h1>
 
+            <div className="cm-body">
 
-                    return null;
-                })}
-                
-                
-                <button onClick={() =>
-                    setShowJson((prev) => !prev)
-                }> Show Json
+                {/* ── Left Column ─────────────────────────── */}
+                <aside className="cm-left">
+                    <div className="cm-card">
+                        <label className="cm-section-label" htmlFor="module-title">
+                            Module Title
+                        </label>
+                        <input
+                            id="module-title"
+                            className="cm-title-input"
+                            type="text"
+                            placeholder="Enter module title…"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="cm-card">
+                        <span className="cm-section-label">Add Content Block</span>
+                        <div className="cm-add-stack">
+                            {BLOCK_BUTTONS.map(({ type, label }) => (
+                                <button
+                                    key={type}
+                                    className={`cm-add-btn cm-add-btn--${type}`}
+                                    onClick={() => addBlock(type)}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </aside>
+
+                {/* ── Right Column ────────────────────────── */}
+                <div className="cm-right">
+
+                    <div className="cm-card">
+                        <span className="cm-section-label">Block Editor</span>
+                        {blocks.length === 0 ? (
+                            <p className="cm-empty-state">
+                                No blocks yet — use the left panel to add one.
+                            </p>
+                        ) : (
+                            <div className="cm-block-list">
+                                {blocks.map((block, index) => (
+                                    <BlockItem
+                                        key={block.id}
+                                        block={block}
+                                        index={index}
+                                        isActive={activeId === block.id}
+                                        isDragging={dragIdx === index}
+                                        isDragOver={dropIdx === index && dragIdx !== index}
+                                        onClick={() => setActiveId(block.id)}
+                                        onDelete={() => deleteBlock(block.id)}
+                                        onDragStart={onDragStart}
+                                        onDragOver={onDragOver}
+                                        onDrop={onDrop}
+                                        onDragEnd={onDragEnd}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="cm-card">
+                        <span className="cm-section-label">Block Preview</span>
+                        <BlockPreview block={activeBlock} setBlocks={setBlocks} />
+                    </div>
+
+                    <button
+                        className="cm-list-toggle"
+                        onClick={() => setShowList((v) => !v)}
+                    >
+                        {showList ? 'Hide block list' : 'List all blocks'}
+                    </button>
+
+                    {showList && (
+                        <div className="cm-card cm-block-directory">
+                            <span className="cm-section-label">All Blocks</span>
+                            {blocks.length === 0 ? (
+                                <p className="cm-empty-state">No blocks added yet.</p>
+                            ) : (
+                                <ol className="cm-directory-list">
+                                    {blocks.map((b, i) => (
+                                        <li key={b.id} className="cm-directory-item">
+                                            <span className="cm-directory-index">#{i + 1}</span>
+                                            {b.type.charAt(0).toUpperCase() + b.type.slice(1)} Block
+                                        </li>
+                                    ))}
+                                </ol>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ── Bottom Actions ───────────────────────────── */}
+            <div className="cm-footer">
+                <button className="cm-action cm-action--cancel" onClick={handleCancel}>
+                    Cancel
                 </button>
-                {showJson && (<pre>
-                    {JSON.stringify(blocks, null, 2)}
-                </pre>
-                )}
+                <button className="cm-action cm-action--add" onClick={saveData}>
+                    Add
+                </button>
+                <button className="cm-action cm-action--submit" onClick={saveData}>
+                    Preview &amp; Submit
+                </button>
             </div>
         </section>
     );
