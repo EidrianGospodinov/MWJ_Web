@@ -1,16 +1,17 @@
 ﻿import React from "react";
-import { uploadData } from 'aws-amplify/storage';
+import {uploadData} from 'aws-amplify/storage';
 import '@aws-amplify/ui-react/styles.css';
 
 type Props = {
-    block: any; 
+    block: any;
     setBlocks: React.Dispatch<React.SetStateAction<any[]>>;
-    mediaType: "image" | "video"; 
+    mediaType: "image" | "video";
 };
 
-export default function MediaUploader({ block, setBlocks, mediaType }: Props) {
+export default function MediaUploader({block, setBlocks, mediaType}: Props) {
     const [file, setFile] = React.useState<File | undefined>();
     const [isUploading, setIsUploading] = React.useState(false);
+    const [uploadProgress, setUploadProgress] = React.useState<number>(0);
 
     const folderName = mediaType === "image" ? "images" : "videos";
     const acceptType = mediaType === "image" ? "image/*" : "video/*";
@@ -30,6 +31,16 @@ export default function MediaUploader({ block, setBlocks, mediaType }: Props) {
             const task = uploadData({
                 path: filePath,
                 data: file,
+                options: {
+                    onProgress: ({transferredBytes, totalBytes}) => {
+                        if (totalBytes) {
+                            const percentage = Math.round(
+                                (transferredBytes / totalBytes) * 100
+                            );
+                            setUploadProgress(percentage);
+                        }
+                    },
+                }
             });
 
             await task.result;
@@ -65,14 +76,29 @@ export default function MediaUploader({ block, setBlocks, mediaType }: Props) {
                 onClick={handleUpload}
                 disabled={!file || isUploading}
             >
-                {isUploading ? "Uploading..." : `Upload ${buttonLabel}`}
+                {/*Show the percentage on the button while uploading */}
+                {isUploading ? `Uploading... ${uploadProgress}%` : `Upload ${buttonLabel}`}
             </button>
 
-            {block.content?.fileName && (
-                <p style={{ color: "green", fontSize: "0.9rem", margin: 0 }}>
+            {/*The visual progress bar */}
+            {isUploading && (
+                <div style={{width: '100%', backgroundColor: '#f0f0f0', borderRadius: '4px', overflow: 'hidden'}}>
+                    <div
+                        style={{
+                            height: '8px',
+                            backgroundColor: '#007bff',
+                            width: `${uploadProgress}%`,
+                            transition: 'width 0.2s ease-in-out' // Smooth animation
+                        }}
+                    />
+                </div>
+            )}
+
+            {block.content?.fileName && !isUploading && (
+                <p style={{color: "green", fontSize: "0.9rem", margin: 0}}>
                     Successfully attached: {block.content.fileName}
                 </p>
             )}
         </div>
-    );//todo: add a video upload indicator
+    );
 }
