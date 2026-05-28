@@ -4,6 +4,7 @@ import TextBlock from '../TextBlock/TextBlock';
 import QuestionnaireBlock from '../TextBlock/QuestionnaireBlock';
 import './BlockPreview.css';
 import ImageBlock from "../TextBlock/imageBlock.tsx";
+import VideoBlock from "../TextBlock/videoBlock.tsx";
 
 type Props = {
     block: Block | null;
@@ -33,9 +34,7 @@ export default function BlockPreview({ block, setBlocks }: Props) {
                 )
             }
             {(block.type === 'video') && (
-                <p className="block-preview__empty">
-                    video upload editor coming soon.
-                </p>
+                <VideoBlock block={block} setBlocks={setBlocks} />
             )}
         </div>
     );
