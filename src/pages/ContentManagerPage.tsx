@@ -1,8 +1,8 @@
 import React from 'react';
-import { getCurrentUser } from 'aws-amplify/auth';
-import { client } from '../client';
-import type { Schema } from '../../amplify/data/resource';
-import type { Block } from '../types/Blocks';
+import {getCurrentUser} from 'aws-amplify/auth';
+import {client} from '../client';
+import type {Schema} from '../../amplify/data/resource';
+import type {Block} from '../types/Blocks';
 import BlockItem from '../components/BlockItem/BlockItem';
 import BlockPreview from '../components/BlockPreview/BlockPreview';
 import './ContentManagerPage.css';
@@ -10,31 +10,37 @@ import './ContentManagerPage.css';
 type BlockType = Block['type'];
 
 const BLOCK_BUTTONS: { type: BlockType; label: string }[] = [
-    { type: 'text',          label: 'Text' },
-    { type: 'questionnaire', label: 'Questionnaire' },
-    { type: 'image',         label: 'Upload Image' },
-    { type: 'video',         label: 'Upload Video' },
+    {type: 'text', label: 'Text'},
+    {type: 'questionnaire', label: 'Questionnaire'},
+    {type: 'image', label: 'Upload Image'},
+    {type: 'video', label: 'Upload Video'},
 ];
 
 function makeBlock(type: BlockType): Block {
     const id = crypto.randomUUID();
     switch (type) {
-        case 'text':          return { id, type, content: { text: '' } };
-        case 'questionnaire': return { id, type, content: { questions: [] } };
-        case 'image':         return { id, type, content: {} };
-        case 'video':         return { id, type, content: {} };
+        case 'text':
+            return {id, type, content: {text: ''}};
+        case 'questionnaire':
+            return {id, type, content: {questions: []}};
+        case 'image':
+            return {id, type, content: {}};
+        case 'video':
+            return {id, type, content: {}};
     }
 }
 
 export default function ContentManagerPage() {
-    const [title,    setTitle]    = React.useState('');
-    const [blocks,   setBlocks]   = React.useState<Block[]>([]);
+    const debugShowJson= false;
+
+    const [title, setTitle] = React.useState('');
+    const [blocks, setBlocks] = React.useState<Block[]>([]);
     const [activeId, setActiveId] = React.useState<string | null>(null);
-    const [dragIdx,  setDragIdx]  = React.useState<number | null>(null);
-    const [dropIdx,  setDropIdx]  = React.useState<number | null>(null);
+    const [dragIdx, setDragIdx] = React.useState<number | null>(null);
+    const [dropIdx, setDropIdx] = React.useState<number | null>(null);
     const [showList, setShowList] = React.useState(false);
     const [savedContent, setSavedContent] = React.useState<Schema['ContentManagement']['type'][]>([]);
-    const [editingId,    setEditingId]    = React.useState<string | null>(null);
+    const [editingId, setEditingId] = React.useState<string | null>(null);
 
     const activeBlock = blocks.find((b) => b.id === activeId) ?? null;
 
@@ -69,7 +75,10 @@ export default function ContentManagerPage() {
         setDropIdx(null);
     };
 
-    const onDragEnd = () => { setDragIdx(null); setDropIdx(null); };
+    const onDragEnd = () => {
+        setDragIdx(null);
+        setDropIdx(null);
+    };
 
     // ── Persistence ───────────────────────────────────────────
     const saveData = async () => {
@@ -113,17 +122,17 @@ export default function ContentManagerPage() {
     };
 
     const fetchContent = async () => {
-        const { data } = await client.models.ContentManagement.list();
+        const {data} = await client.models.ContentManagement.list();
         setSavedContent(data);
     };
 
     const deleteContent = async (id: string) => {
-        await client.models.ContentManagement.delete({ id });
+        await client.models.ContentManagement.delete({id});
         await fetchContent();
     };
 
     const updateVisibility = async (id: string, visibility: string) => {
-        await client.models.ContentManagement.update({ id, visibility });
+        await client.models.ContentManagement.update({id, visibility});
         await fetchContent();
     };
 
@@ -164,7 +173,7 @@ export default function ContentManagerPage() {
                     <div className="cm-card">
                         <span className="cm-section-label">Add Content Block</span>
                         <div className="cm-add-stack">
-                            {BLOCK_BUTTONS.map(({ type, label }) => (
+                            {BLOCK_BUTTONS.map(({type, label}) => (
                                 <button
                                     key={type}
                                     className={`cm-add-btn cm-add-btn--${type}`}
@@ -210,7 +219,7 @@ export default function ContentManagerPage() {
 
                     <div className="cm-card">
                         <span className="cm-section-label">Block Preview</span>
-                        <BlockPreview block={activeBlock} setBlocks={setBlocks} />
+                        <BlockPreview block={activeBlock} setBlocks={setBlocks}/>
                     </div>
 
                     <button
@@ -252,6 +261,13 @@ export default function ContentManagerPage() {
                     {editingId ? 'Save Changes' : 'Preview & Submit'}
                 </button>
             </div>
+            {/* Show list of blocks as json for Debug*/}
+            {debugShowJson && (<pre style={{
+                backgroundColor: '#fdf1de',
+                fontSize: '0.85rem',
+            }}>
+                {JSON.stringify(blocks, null, 2)}
+            </pre>)}
 
             <div className="cm-existing">
                 <h2 className="cm-existing__heading">Existing Content</h2>
@@ -260,12 +276,16 @@ export default function ContentManagerPage() {
                 ) : (
                     <div className="cm-existing__list">
                         {savedContent.map((item) => (
-                            <div key={item.id} className={`cm-existing__row${editingId === item.id ? ' cm-existing__row--editing' : ''}`}>
+                            <div key={item.id}
+                                 className={`cm-existing__row${editingId === item.id ? ' cm-existing__row--editing' : ''}`}>
                                 <div className="cm-existing__info">
                                     <span className="cm-existing__title">{item.title}</span>
                                     <span className="cm-existing__meta">
                                         {item.createdAt
-                                            ? new Date(item.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+                                            ? new Date(item.createdAt).toLocaleString(undefined, {
+                                                dateStyle: 'medium',
+                                                timeStyle: 'short'
+                                            })
                                             : '—'}
                                         {' · '}
                                         {item.createdBy ?? 'N/A'}

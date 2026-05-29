@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Block } from '../../types/Blocks';
+import type {Block} from '../../types/Blocks';
 import TextBlock from '../TextBlock/TextBlock';
 import QuestionnaireBlock from '../TextBlock/QuestionnaireBlock';
 import './BlockPreview.css';
@@ -11,7 +11,7 @@ type Props = {
     setBlocks: React.Dispatch<React.SetStateAction<any[]>>;
 };
 
-export default function BlockPreview({ block, setBlocks }: Props) {
+export default function BlockPreview({block, setBlocks}: Props) {
     if (!block) {
         return (
             <p className="block-preview__empty">
@@ -23,18 +23,18 @@ export default function BlockPreview({ block, setBlocks }: Props) {
     return (
         <div className="block-preview">
             {block.type === 'text' && (
-                <TextBlock block={block} setBlocks={setBlocks} />
+                <TextBlock block={block} setBlocks={setBlocks}/>
             )}
             {block.type === 'questionnaire' && (
-                <QuestionnaireBlock block={block} setBlocks={setBlocks} />
+                <QuestionnaireBlock block={block} setBlocks={setBlocks}/>
             )}
             {
                 block.type === 'image' && (
-                    <ImageBlock block={block} setBlocks={setBlocks} />
+                    <ImageBlock block={block} setBlocks={setBlocks}/>
                 )
             }
             {(block.type === 'video') && (
-                <VideoBlock block={block} setBlocks={setBlocks} />
+                <VideoBlock block={block} setBlocks={setBlocks}/>
             )}
         </div>
     );
