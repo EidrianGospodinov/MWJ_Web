@@ -35,7 +35,6 @@ export default function DashboardLayout() {
             <Sidebar
                 activeTab={activeTab}
                 onNavigate={setActiveTab}
-                onSignOut={signOut}
             />
             <main className="main-content">
                 <TopBar onNavigate={setActiveTab} onSignOut={signOut} />

@@ -5,7 +5,6 @@ import logo from '../../assets/Logo.png';
 type Props = {
     activeTab: Tab;
     onNavigate: (tab: Tab) => void;
-    onSignOut: () => void;
 };
 
 const NAV_ITEMS: { label: string; tab: Tab }[] = [
@@ -16,7 +15,7 @@ const NAV_ITEMS: { label: string; tab: Tab }[] = [
     { label: 'Analytics',        tab: 'Analytics' },
 ];
 
-export default function Sidebar({ activeTab, onNavigate, onSignOut }: Props) {
+export default function Sidebar({ activeTab, onNavigate }: Props) {
     return (
         <aside className="sidebar">
             <div className="sidebar-top">
@@ -39,11 +38,7 @@ export default function Sidebar({ activeTab, onNavigate, onSignOut }: Props) {
                 </ul>
             </nav>
 
-            <div className="sidebar-bottom">
-                <button className="sign-out-btn" onClick={onSignOut}>
-                    <span className="sidebar-icon">↪</span> Sign out
-                </button>
-            </div>
+            
         </aside>
     );
 }
