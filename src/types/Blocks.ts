@@ -32,6 +32,7 @@ export type QuestionnaireBlockType = BaseBlock & {
 
     content: {
         questions: Question[];
+        gamify?: boolean;
     };
 };
 

@@ -30,6 +30,21 @@ export default function QuestionnaireBlock({block, setBlocks}: Props) {
             })
         );
     };
+    const editQuestionnaireBlock = (changes: Partial<QuestionnaireBlockType["content"]>) =>{
+        setBlocks((oldBlocks) =>
+        oldBlocks.map((currentBlock) =>{
+            if(currentBlock.id !== block.id) return currentBlock;
+            return {
+                ...currentBlock,
+                content: {
+                    ...currentBlock.content,
+                    ...changes,
+                    
+                }
+            }
+        })
+        )
+    }
 
     const updateQuestionText = (questionId: string, newQuestionText: string) => {
         setBlocks((oldBlocks) =>
@@ -122,7 +137,25 @@ export default function QuestionnaireBlock({block, setBlocks}: Props) {
             borderRadius: '6px',
             backgroundColor: '#fff'
         }}>
-
+            <div>
+                {/* Checkbox */}
+                <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    color: '#555'
+                }}>
+                    <input
+                        type="checkbox"
+                        /*checked={}*/
+                        onChange={(e) => editQuestionnaireBlock({gamify: e.target.checked})}
+                        style={{width: '16px', height: '16px', cursor: 'pointer'}}
+                    />
+                    Gamify
+                </label>
+            </div>
             {/* Render all questions */}
             <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
                 {block.content.questions.map((question: Question, index: number) => (
