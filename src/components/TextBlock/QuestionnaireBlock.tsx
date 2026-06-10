@@ -23,6 +23,7 @@ export default function QuestionnaireBlock({block, setBlocks}: Props) {
                                 id: crypto.randomUUID(),
                                 questionText: "",
                                 answers: [],
+                                points: 10,
                             },
                         ],
                     },
@@ -60,6 +61,29 @@ export default function QuestionnaireBlock({block, setBlocks}: Props) {
                             return {
                                 ...question,
                                 questionText: newQuestionText,
+                            };
+                        }),
+                    },
+                };
+            })
+        );
+    };
+
+    const updateQuestionPoints = (questionId: string, newPoints: number) => {
+        const safePoints = Number.isFinite(newPoints) && newPoints >= 0 ? newPoints : 0;
+        setBlocks((oldBlocks) =>
+            oldBlocks.map((currentBlock) => {
+                if (currentBlock.id !== block.id) return currentBlock;
+                return {
+                    ...currentBlock,
+                    content: {
+                        ...currentBlock.content,
+                        questions: currentBlock.content.questions.map((question: Question) => {
+                            if (question.id !== questionId) return question;
+
+                            return {
+                                ...question,
+                                points: safePoints,
                             };
                         }),
                     },
@@ -149,7 +173,7 @@ export default function QuestionnaireBlock({block, setBlocks}: Props) {
                 }}>
                     <input
                         type="checkbox"
-                        /*checked={}*/
+                        checked={block.content.gamify ?? false}
                         onChange={(e) => editQuestionnaireBlock({gamify: e.target.checked})}
                         style={{width: '16px', height: '16px', cursor: 'pointer'}}
                     />
@@ -168,7 +192,41 @@ export default function QuestionnaireBlock({block, setBlocks}: Props) {
                         border: '1px solid #eee',
                         borderRadius: '4px'
                     }}>
-                        <h4 style={{margin: 0, color: '#333'}}>Question {index + 1}</h4>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '1rem',
+                            flexWrap: 'wrap'
+                        }}>
+                            <h4 style={{margin: 0, color: '#333'}}>Question {index + 1}</h4>
+
+                            {/* Points input */}
+                            <label style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                fontSize: '0.9rem',
+                                color: '#555'
+                            }}>
+                                Points
+                                <input
+                                    type="number"
+                                    min={0}
+                                    step={1}
+                                    value={question.points ?? 0}
+                                    onChange={(e) => updateQuestionPoints(question.id, e.target.valueAsNumber)}
+                                    style={{
+                                        width: '70px',
+                                        padding: '0.4rem 0.5rem',
+                                        fontSize: '0.9rem',
+                                        border: '1px solid #ccc',
+                                        borderRadius: '4px',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </label>
+                        </div>
 
                         {/* Question text area */}
                         <textarea

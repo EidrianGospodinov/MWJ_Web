@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(find \"web/MWJ_Web/amplify\" -type f -not -path \"*/node_modules/*\")",
+      "Bash(find \"LearningReactNative/amplify\" -type f -not -path \"*/node_modules/*\")"
     ]
   }
 }

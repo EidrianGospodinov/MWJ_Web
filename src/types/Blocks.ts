@@ -24,7 +24,8 @@ export type Question = {
     questionText: string;
 
     answers: Answer[];
-    points: 10;
+
+    points: number;
 };
 
 export type QuestionnaireBlockType = BaseBlock & {
