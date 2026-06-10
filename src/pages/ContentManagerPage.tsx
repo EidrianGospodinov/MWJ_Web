@@ -5,6 +5,7 @@ import type {Schema} from '../../amplify/data/resource';
 import type {Block} from '../types/Blocks';
 import BlockItem from '../components/BlockItem/BlockItem';
 import BlockPreview from '../components/BlockPreview/BlockPreview';
+import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader';
 import './ContentManagerPage.css';
 
 type BlockType = Block['type'];
@@ -34,6 +35,7 @@ export default function ContentManagerPage() {
     const debugShowJson= false;
 
     const [title, setTitle] = React.useState('');
+    const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(null);
     const [blocks, setBlocks] = React.useState<Block[]>([]);
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [dragIdx, setDragIdx] = React.useState<number | null>(null);
@@ -92,6 +94,7 @@ export default function ContentManagerPage() {
                     id: editingId,
                     title,
                     blocks: JSON.stringify(blocks),
+                    thumbnailKey,
                 });
                 console.log('updated', result);
             } else {
@@ -103,6 +106,7 @@ export default function ContentManagerPage() {
                     blocks: JSON.stringify(blocks),
                     visibility: 'Public',
                     createdBy,
+                    thumbnailKey,
                 });
                 console.log('saved', result);
             }
@@ -116,6 +120,7 @@ export default function ContentManagerPage() {
 
     const startEdit = (item: Schema['ContentManagement']['type']) => {
         setTitle(item.title);
+        setThumbnailKey(item.thumbnailKey ?? null);
         setBlocks(JSON.parse(String(item.blocks ?? '[]')));
         setEditingId(item.id);
         setActiveId(null);
@@ -142,6 +147,7 @@ export default function ContentManagerPage() {
 
     const handleCancel = () => {
         setTitle('');
+        setThumbnailKey(null);
         setBlocks([]);
         setActiveId(null);
         setShowList(false);
@@ -168,6 +174,11 @@ export default function ContentManagerPage() {
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                         />
+                    </div>
+
+                    <div className="cm-card">
+                        <span className="cm-section-label">Module Thumbnail</span>
+                        <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey} />
                     </div>
 
                     <div className="cm-card">

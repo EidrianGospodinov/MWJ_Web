@@ -13,6 +13,7 @@ const schema = a.schema({
       blocks: a.json().required(),
       visibility: a.string(),
       createdBy: a.string(),
+      thumbnailKey: a.string(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 });
