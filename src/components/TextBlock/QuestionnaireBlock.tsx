@@ -47,6 +47,7 @@ export default function QuestionnaireBlock({block, setBlocks}: Props) {
         )
     }
 
+    //this 2 below can be modified to use partial question instead of 2 different functions
     const updateQuestionText = (questionId: string, newQuestionText: string) => {
         setBlocks((oldBlocks) =>
             oldBlocks.map((currentBlock) => {

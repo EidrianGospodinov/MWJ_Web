@@ -110,14 +110,20 @@ export default function ContentManagerPage() {
                 });
                 console.log('saved', result);
             }
-            setEditingId(null);
+            resetContentManagerFields();
             await fetchContent();
         } catch (err) {
             console.error('Save failed', err);
             alert('Save failed. Please try again.');
         }
     };
-
+    function resetContentManagerFields(): void {
+        setTitle('');
+        setThumbnailKey(null);
+        setBlocks([]);
+        setActiveId(null);
+        setEditingId(null);
+    }
     const startEdit = (item: Schema['ContentManagement']['type']) => {
         setTitle(item.title);
         setThumbnailKey(item.thumbnailKey ?? null);
