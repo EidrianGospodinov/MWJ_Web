@@ -32,7 +32,7 @@ function makeBlock(type: BlockType): Block {
 }
 
 export default function ContentManagerPage() {
-    const debugShowJson= false;
+    const debugShowJson = false;
 
     const [title, setTitle] = React.useState('');
     const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(null);
@@ -117,6 +117,51 @@ export default function ContentManagerPage() {
             alert('Save failed. Please try again.');
         }
     };
+    const duplicateContent = async (
+        item: Schema['ContentManagement']['type']
+    ) => {
+        try {
+            // Find all items that are based on this title
+            const baseTitle = item.title.replace(/\s\(\d+\)$/, '');
+
+            const matchingItems = savedContent.filter((content) =>
+                content.title.startsWith(baseTitle)
+            );
+
+            let nextNumber = 1;
+
+            matchingItems.forEach((content) => {
+                const match = content.title.match(/\((\d+)\)$/);
+
+                if (match) {
+                    const num = Number(match[1]);
+                    if (num >= nextNumber) {
+                        nextNumber = num + 1;
+                    }
+                }
+            });
+
+            const duplicatedTitle = `${baseTitle} (${nextNumber})`;
+
+            const createdBy = await getCurrentUser()
+                .then((u) => u.signInDetails?.loginId ?? u.username)
+                .catch(() => undefined);
+
+            await client.models.ContentManagement.create({
+                title: duplicatedTitle,
+                blocks: item.blocks,
+                visibility: item.visibility,
+                thumbnailKey: item.thumbnailKey,
+                createdBy,
+            });
+
+            await fetchContent();
+        } catch (err) {
+            console.error('Duplicate failed', err);
+            alert('Failed to duplicate content.');
+        }
+    };
+
     function resetContentManagerFields(): void {
         setTitle('');
         setThumbnailKey(null);
@@ -124,6 +169,7 @@ export default function ContentManagerPage() {
         setActiveId(null);
         setEditingId(null);
     }
+
     const startEdit = (item: Schema['ContentManagement']['type']) => {
         setTitle(item.title);
         setThumbnailKey(item.thumbnailKey ?? null);
@@ -184,7 +230,7 @@ export default function ContentManagerPage() {
 
                     <div className="cm-card">
                         <span className="cm-section-label">Module Thumbnail</span>
-                        <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey} />
+                        <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
                     </div>
 
                     <div className="cm-card">
@@ -324,9 +370,16 @@ export default function ContentManagerPage() {
                                         Edit
                                     </button>
                                     <button
+                                        className="cm-existing__duplicate"
+                                        onClick={() => duplicateContent(item)}
+                                    >
+                                        Duplicate
+                                    </button>
+                                    <button
                                         className="cm-existing__delete"
                                         onClick={() => deleteContent(item.id)}
                                     >
+
                                         Delete
                                     </button>
                                 </div>

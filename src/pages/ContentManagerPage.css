@@ -311,7 +311,22 @@
     background: #e8eaf6;
     border-color: #9fa8da;
 }
+.cm-existing__duplicate {
+    padding: 5px 12px;
+    border: 1.5px solid #ffe0b2;
+    border-radius: 6px;
+    background: #fff8e8;
+    color: #ef6c00;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
 
+.cm-existing__duplicate:hover {
+    background: #fff3d6;
+    border-color: #ffcc80;
+}
 .cm-existing__delete {
     padding: 5px 12px;
     border: 1.5px solid #ffcdd2;
