@@ -36,6 +36,7 @@ export default function ContentManagerPage() {
 
     const [title, setTitle] = React.useState('');
     const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(null);
+    const [isRecommended, setIsRecommended] = React.useState(false);
     const [blocks, setBlocks] = React.useState<Block[]>([]);
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [dragIdx, setDragIdx] = React.useState<number | null>(null);
@@ -95,6 +96,7 @@ export default function ContentManagerPage() {
                     title,
                     blocks: JSON.stringify(blocks),
                     thumbnailKey,
+                    isRecommended,
                 });
                 console.log('updated', result);
             } else {
@@ -107,6 +109,7 @@ export default function ContentManagerPage() {
                     visibility: 'Public',
                     createdBy,
                     thumbnailKey,
+                    isRecommended,
                 });
                 console.log('saved', result);
             }
@@ -153,6 +156,7 @@ export default function ContentManagerPage() {
                 visibility: item.visibility,
                 thumbnailKey: item.thumbnailKey,
                 createdBy,
+                isRecommended: item.isRecommended,
             });
 
             await fetchContent();
@@ -165,6 +169,7 @@ export default function ContentManagerPage() {
     function resetContentManagerFields(): void {
         setTitle('');
         setThumbnailKey(null);
+        setIsRecommended(false);
         setBlocks([]);
         setActiveId(null);
         setEditingId(null);
@@ -173,6 +178,7 @@ export default function ContentManagerPage() {
     const startEdit = (item: Schema['ContentManagement']['type']) => {
         setTitle(item.title);
         setThumbnailKey(item.thumbnailKey ?? null);
+        setIsRecommended(item.isRecommended ?? false);
         setBlocks(JSON.parse(String(item.blocks ?? '[]')));
         setEditingId(item.id);
         setActiveId(null);
@@ -200,6 +206,7 @@ export default function ContentManagerPage() {
     const handleCancel = () => {
         setTitle('');
         setThumbnailKey(null);
+        setIsRecommended(false);
         setBlocks([]);
         setActiveId(null);
         setShowList(false);
@@ -231,6 +238,21 @@ export default function ContentManagerPage() {
                     <div className="cm-card">
                         <span className="cm-section-label">Module Thumbnail</span>
                         <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
+                    </div>
+
+                    <div className="cm-card">
+                        <label className="cm-toggle">
+                            <span className="cm-section-label">Recommend on Homepage</span>
+                            <input
+                                type="checkbox"
+                                className="cm-toggle__input"
+                                checked={isRecommended}
+                                onChange={(e) => setIsRecommended(e.target.checked)}
+                            />
+                            <span className="cm-toggle__track">
+                                <span className="cm-toggle__thumb"/>
+                            </span>
+                        </label>
                     </div>
 
                     <div className="cm-card">

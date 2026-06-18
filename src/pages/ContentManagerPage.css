@@ -343,3 +343,52 @@
     background: #ffebee;
     border-color: #ef9a9a;
 }
+
+.cm-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.cm-toggle__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.cm-toggle__track {
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 22px;
+    border-radius: 999px;
+    background: #d4d4d8;
+    transition: background 0.15s;
+}
+
+.cm-toggle__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s;
+}
+
+.cm-toggle__input:checked + .cm-toggle__track {
+    background: #5b6af5;
+}
+
+.cm-toggle__input:checked + .cm-toggle__track .cm-toggle__thumb {
+    transform: translateX(18px);
+}
+
+.cm-toggle__input:focus-visible + .cm-toggle__track {
+    box-shadow: 0 0 0 3px rgba(91, 106, 245, 0.3);
+}

@@ -14,6 +14,7 @@ const schema = a.schema({
       visibility: a.string(),
       createdBy: a.string(),
       thumbnailKey: a.string(),
+      isRecommended: a.boolean(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 });

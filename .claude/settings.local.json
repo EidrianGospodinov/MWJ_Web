@@ -15,7 +15,8 @@
       "Bash(aws amplify *)",
       "Bash(aws dynamodb *)",
       "Bash(npx ampx *)",
-      "Bash(node -e \"const o=require\\('./amplify_outputs.json'\\); console.log\\('data.url      :', o.data.url\\); console.log\\('data.region   :', o.data.aws_region\\); console.log\\('user_pool_id  :', o.auth.user_pool_id\\); console.log\\('storage bucket:', o.storage.bucket_name\\);\")"
+      "Bash(node -e \"const o=require\\('./amplify_outputs.json'\\); console.log\\('data.url      :', o.data.url\\); console.log\\('data.region   :', o.data.aws_region\\); console.log\\('user_pool_id  :', o.auth.user_pool_id\\); console.log\\('storage bucket:', o.storage.bucket_name\\);\")",
+      "PowerShell(npx tsc --noEmit)"
     ]
   }
 }
