@@ -16,7 +16,16 @@
       "Bash(aws dynamodb *)",
       "Bash(npx ampx *)",
       "Bash(node -e \"const o=require\\('./amplify_outputs.json'\\); console.log\\('data.url      :', o.data.url\\); console.log\\('data.region   :', o.data.aws_region\\); console.log\\('user_pool_id  :', o.auth.user_pool_id\\); console.log\\('storage bucket:', o.storage.bucket_name\\);\")",
-      "PowerShell(npx tsc --noEmit)"
+      "PowerShell(npx tsc --noEmit)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(sleep 5 && cat /tmp/mwj_dev.log)",
+      "Bash(npx playwright *)",
+      "Bash(aws cognito-idp *)",
+      "Bash(cp amplify_outputs.json \"amplify_outputs.backup.$\\(date +%Y%m%d-%H%M%S\\).json\")",
+      "Bash(tasklist)",
+      "Bash(curl -s -X POST https://tm2oahg2pjhfvjm5p76vulzume.appsync-api.eu-west-2.amazonaws.com/graphql -H 'Content-Type: application/json' -H 'x-api-key: da2-jica2ghxtzcc7jkmfg27wo34vq' -d '{\"query\":\"query{ listContentManagements{ items{ title createdBy visibility } } }\"}')",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\); if\\(j.errors\\){console.log\\('ERRORS',JSON.stringify\\(j.errors\\)\\);} else {const items=j.data.listContentManagements.items; console.log\\('returned',items.length,'items:'\\); items.forEach\\(i=>console.log\\(' -',i.title,'|',i.createdBy,'|',i.visibility\\)\\);}}\\)\")"
     ]
   }
 }
