@@ -6,6 +6,28 @@ import App from "./App.tsx";
 import "./index.css";
 import '@aws-amplify/ui-react/styles.css';
 
+// The user pool requires the given_name / family_name attributes, so the
+// sign-up form must collect them and submit them with the registration.
+const formFields = {
+    signUp: {
+        given_name: {
+            order: 1,
+            label: "First name",
+            placeholder: "Enter your first name",
+            isRequired: true,
+        },
+        family_name: {
+            order: 2,
+            label: "Last name",
+            placeholder: "Enter your last name",
+            isRequired: true,
+        },
+        email: { order: 3 },
+        password: { order: 4 },
+        confirm_password: { order: 5 },
+    },
+};
+
 const theme = {
     name: "westminster-theme",
 
@@ -108,7 +130,7 @@ const theme = {
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
         <ThemeProvider theme={theme}>
-        <Authenticator>
+        <Authenticator formFields={formFields}>
             <App />
         </Authenticator>
         </ThemeProvider>
