@@ -17,6 +17,30 @@ const schema = a.schema({
       isRecommended: a.boolean(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
+
+  Reward: a
+    .model({
+      title: a.string().required(),
+      description: a.string(),
+      pointsCost: a.integer(),
+      type: a.enum(["Digital", "Physical"]),
+      inventoryCount: a.integer(),
+      isInfinite: a.boolean(),
+      pickupInstructions: a.string(),
+      thumbnailKey: a.string(),
+      createdBy: a.string(),
+      codes: a.hasMany("RewardCode", "rewardId"),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  RewardCode: a
+    .model({
+      rewardId: a.id(),
+      reward: a.belongsTo("Reward", "rewardId"),
+      codeString: a.string().required(),
+      isClaimed: a.boolean().default(false),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

@@ -25,7 +25,16 @@
       "Bash(cp amplify_outputs.json \"amplify_outputs.backup.$\\(date +%Y%m%d-%H%M%S\\).json\")",
       "Bash(tasklist)",
       "Bash(curl -s -X POST https://tm2oahg2pjhfvjm5p76vulzume.appsync-api.eu-west-2.amazonaws.com/graphql -H 'Content-Type: application/json' -H 'x-api-key: da2-jica2ghxtzcc7jkmfg27wo34vq' -d '{\"query\":\"query{ listContentManagements{ items{ title createdBy visibility } } }\"}')",
-      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\); if\\(j.errors\\){console.log\\('ERRORS',JSON.stringify\\(j.errors\\)\\);} else {const items=j.data.listContentManagements.items; console.log\\('returned',items.length,'items:'\\); items.forEach\\(i=>console.log\\(' -',i.title,'|',i.createdBy,'|',i.visibility\\)\\);}}\\)\")"
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\); if\\(j.errors\\){console.log\\('ERRORS',JSON.stringify\\(j.errors\\)\\);} else {const items=j.data.listContentManagements.items; console.log\\('returned',items.length,'items:'\\); items.forEach\\(i=>console.log\\(' -',i.title,'|',i.createdBy,'|',i.visibility\\)\\);}}\\)\")",
+      "Bash(netstat -ano)",
+      "Bash(npm run *)",
+      "Bash(ls amplify/ amplify/data/)",
+      "Bash(find amplify *)",
+      "Bash(ls src/pages/*.css)",
+      "Bash(ls -la amplify/)",
+      "Bash(ls -la amplify/data/)",
+      "Bash(find . -path ./node_modules -prune -o -name \"resource.ts\" -print)",
+      "Bash(ps -W)"
     ]
   }
 }
