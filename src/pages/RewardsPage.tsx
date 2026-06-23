@@ -1,64 +1,103 @@
-import React from 'react';
-import {getCurrentUser} from 'aws-amplify/auth';
-import {client} from '../client';
-import type {Schema} from '../../amplify/data/resource';
-import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader';
-import './ContentManagerPage.css';
-
-type RewardType = 'Digital' | 'Physical';
-
-export default function RewardsPage() {
-    const [title, setTitle] = React.useState('');
-    const [description, setDescription] = React.useState('');
-    const [pointsCost, setPointsCost] = React.useState('');
-    const [type, setType] = React.useState<RewardType>('Digital');
-    const [inventoryCount, setInventoryCount] = React.useState('');
-    const [isInfinite, setIsInfinite] = React.useState(false);
-    const [codesText, setCodesText] = React.useState('');
-    const [pickupInstructions, setPickupInstructions] = React.useState('');
-    const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(null);
-    const [savedRewards, setSavedRewards] = React.useState<Schema['Reward']['type'][]>([]);
-    const [availableCodes, setAvailableCodes] = React.useState<Record<string, number>>({});
-    const [editingId, setEditingId] = React.useState<string | null>(null);
-
-    const parseCodes = (raw: string): string[] => {
-        const seen = new Set<string>();
-        return raw
-            .split('\n')
-            .map((line) => line.trim())
-            .filter((line) => {
-                if (!line || seen.has(line)) return false;
-                seen.add(line);
-                return true;
-            });
-    };
-
-    const resetFields = () => {
-        setTitle('');
-        setDescription('');
-        setPointsCost('');
-        setType('Digital');
-        setInventoryCount('');
-        setIsInfinite(false);
-        setCodesText('');
-        setPickupInstructions('');
-        setThumbnailKey(null);
-        setEditingId(null);
-    };
-
-    const fetchRewards = async () => {
-        if (!client.models.Reward) return;
-        const {data} = await client.models.Reward.list();
-        setSavedRewards(data);
-
-        if (client.models.RewardCode) {
-            const {data: codes} = await client.models.RewardCode.list();
-            const counts: Record<string, number> = {};
-            codes.forEach((code) => {
-                if (code.rewardId && !code.isClaimed) {
-                    counts[code.rewardId] = (counts[code.rewardId] ?? 0) + 1;
-                }
-            });
-            setAvailableCodes(counts);
+const saveData = async () => {
+        if (!title.trim()) {
+            alert('Please enter a reward title before saving.');
+            return;
         }
+        if (!client.models.Reward) {
+            alert('The Reward model is not deployed yet.');
+            return;
+        }
+
+        const newCodes = type === 'Digital' ? parseCodes(codesText) : [];
+        if (type === 'Digital' && !editingId && newCodes.length === 0) {
+            alert('Please paste at least one promo code, one per line.');
+            return;
+        }
+
+        try {
+            const payload = {
+                title,
+                description,
+                pointsCost: pointsCost === '' ? null : Number(pointsCost),
+                type,
+                isInfinite: type === 'Physical' ? isInfinite : false,
+                inventoryCount:
+                    type === 'Physical' && !isInfinite && inventoryCount !== ''
+                        ? Number(inventoryCount)
+                        : null,
+                pickupInstructions: type === 'Physical' ? pickupInstructions : null,
+                thumbnailKey,
+            };
+
+            let rewardId = editingId;
+            if (editingId) {
+                await client.models.Reward.update({id: editingId, ...payload});
+            } else {
+                const createdBy = await getCurrentUser()
+                    .then((u) => u.signInDetails?.loginId ?? u.username)
+                    .catch(() => undefined);
+                const {data} = await client.models.Reward.create({...payload, createdBy});
+                rewardId = data?.id ?? null;
+            }
+
+            if (type === 'Digital' && rewardId && newCodes.length > 0 && client.models.RewardCode) {
+                await Promise.all(
+                    newCodes.map((codeString) =>
+                        client.models.RewardCode.create({
+                            rewardId,
+                            codeString,
+                            isClaimed: false,
+                        })
+                    )
+                );
+            }
+
+            resetFields();
+            await fetchRewards();
+        } catch (err) {
+            console.error('Save failed', err);
+            alert('Save failed. Please try again.');
+        }
+    };
+
+    const startEdit = (item: Schema['Reward']['type']) => {
+        setTitle(item.title);
+        setDescription(item.description ?? '');
+        setPointsCost(item.pointsCost == null ? '' : String(item.pointsCost));
+        setType((item.type as RewardType) ?? 'Digital');
+        setInventoryCount(item.inventoryCount == null ? '' : String(item.inventoryCount));
+        setIsInfinite(item.isInfinite ?? false);
+        setCodesText('');
+        setPickupInstructions(item.pickupInstructions ?? '');
+        setThumbnailKey(item.thumbnailKey ?? null);
+        setEditingId(item.id);
+    };
+
+    const deleteReward = async (id: string) => {
+        if (!client.models.Reward) return;
+        if (client.models.RewardCode) {
+            const {data: codes} = await client.models.RewardCode.list({
+                filter: {rewardId: {eq: id}},
+            });
+            await Promise.all(
+                codes.map((code) => client.models.RewardCode.delete({id: code.id}))
+            );
+        }
+        await client.models.Reward.delete({id});
+        await fetchRewards();
+    };
+
+    React.useEffect(() => {
+        fetchRewards();
+    }, []);
+
+    const handleCancel = () => {
+        resetFields();
+    };
+
+    const stockLabel = (item: Schema['Reward']['type']): string => {
+        if (item.type === 'Digital') {
+            return `${availableCodes[item.id] ?? 0} codes available`;
+        }
+        return item.isInfinite ? 'Infinite stock' : `${item.inventoryCount ?? 0} in stock`;
     };
