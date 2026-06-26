@@ -191,6 +191,13 @@
               "isRequired": false,
               "attributes": []
             },
+            "oncePerUser": {
+              "name": "oncePerUser",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
             "pickupInstructions": {
               "name": "pickupInstructions",
               "isArray": false,

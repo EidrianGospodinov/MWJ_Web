@@ -26,6 +26,7 @@ const schema = a.schema({
       type: a.enum(["Digital", "Physical"]),
       inventoryCount: a.integer(),
       isInfinite: a.boolean(),
+      oncePerUser: a.boolean(),
       pickupInstructions: a.string(),
       thumbnailKey: a.string(),
       createdBy: a.string(),
@@ -39,6 +40,17 @@ const schema = a.schema({
       reward: a.belongsTo("Reward", "rewardId"),
       codeString: a.string().required(),
       isClaimed: a.boolean().default(false),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  Redemption: a
+    .model({
+      userId: a.string().required(),
+      userEmail: a.string().required(),
+      rewardId: a.string().required(),
+      rewardTitle: a.string().required(),
+      pointsCost: a.integer().required(),
+      redeemedAt: a.datetime().required(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 });

@@ -14,12 +14,14 @@ export default function RewardsPage() {
     const [type, setType] = React.useState<RewardType>('Digital');
     const [inventoryCount, setInventoryCount] = React.useState('');
     const [isInfinite, setIsInfinite] = React.useState(false);
+    const [oncePerUser, setOncePerUser] = React.useState(false);
     const [codesText, setCodesText] = React.useState('');
     const [pickupInstructions, setPickupInstructions] = React.useState('');
     const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(null);
     const [savedRewards, setSavedRewards] = React.useState<Schema['Reward']['type'][]>([]);
     const [availableCodes, setAvailableCodes] = React.useState<Record<string, number>>({});
     const [editingId, setEditingId] = React.useState<string | null>(null);
+    const [redemptions, setRedemptions] = React.useState<Schema['Redemption']['type'][]>([]);
 
     const parseCodes = (raw: string): string[] => {
         const seen = new Set<string>();
@@ -40,10 +42,20 @@ export default function RewardsPage() {
         setType('Digital');
         setInventoryCount('');
         setIsInfinite(false);
+        setOncePerUser(false);
         setCodesText('');
         setPickupInstructions('');
         setThumbnailKey(null);
         setEditingId(null);
+    };
+
+    const fetchRedemptions = async () => {
+        if (!client.models.Redemption) return;
+        const { data } = await client.models.Redemption.list();
+        const sorted = [...data].sort(
+            (a, b) => new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime()
+        );
+        setRedemptions(sorted);
     };
 
     const fetchRewards = async () => {
@@ -91,6 +103,7 @@ export default function RewardsPage() {
                         ? Number(inventoryCount)
                         : null,
                 pickupInstructions: type === 'Physical' ? pickupInstructions : null,
+                oncePerUser,
                 thumbnailKey,
             };
 
@@ -132,6 +145,7 @@ export default function RewardsPage() {
         setType((item.type as RewardType) ?? 'Digital');
         setInventoryCount(item.inventoryCount == null ? '' : String(item.inventoryCount));
         setIsInfinite(item.isInfinite ?? false);
+        setOncePerUser(item.oncePerUser ?? false);
         setCodesText('');
         setPickupInstructions(item.pickupInstructions ?? '');
         setThumbnailKey(item.thumbnailKey ?? null);
@@ -154,6 +168,7 @@ export default function RewardsPage() {
 
     React.useEffect(() => {
         fetchRewards();
+        fetchRedemptions();
     }, []);
 
     const handleCancel = () => {
@@ -241,6 +256,24 @@ export default function RewardsPage() {
                             )}
                         </div>
                     )}
+
+                    <div className="cm-card">
+                        <label className="cm-toggle">
+                            <span className="cm-section-label">Limit to one per user</span>
+                            <input
+                                type="checkbox"
+                                className="cm-toggle__input"
+                                checked={oncePerUser}
+                                onChange={(e) => setOncePerUser(e.target.checked)}
+                            />
+                            <span className="cm-toggle__track">
+                                <span className="cm-toggle__thumb"/>
+                            </span>
+                        </label>
+                        <span className="cm-section-label">
+                            Each user can redeem this reward only once, even if stock remains.
+                        </span>
+                    </div>
                 </aside>
 
                 <div className="cm-right">
@@ -323,6 +356,34 @@ export default function RewardsPage() {
             </div>
 
             <div className="cm-existing">
+                <h2 className="cm-existing__heading">Redemption History</h2>
+                {redemptions.length === 0 ? (
+                    <p className="cm-empty-state">No redemptions yet.</p>
+                ) : (
+                    <table className="rh-table">
+                        <thead>
+                            <tr>
+                                <th>Reward</th>
+                                <th>Student Email</th>
+                                <th>Points Spent</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {redemptions.map((r) => (
+                                <tr key={r.id}>
+                                    <td>{r.rewardTitle}</td>
+                                    <td>{r.userEmail}</td>
+                                    <td>{r.pointsCost} pts</td>
+                                    <td>{new Date(r.redeemedAt).toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+
+            <div className="cm-existing">
                 <h2 className="cm-existing__heading">Existing Rewards</h2>
                 {savedRewards.length === 0 ? (
                     <p className="cm-empty-state">No saved rewards yet.</p>
@@ -339,6 +400,7 @@ export default function RewardsPage() {
                                         {item.pointsCost == null ? 0 : item.pointsCost} pts
                                         {' · '}
                                         {stockLabel(item)}
+                                        {item.oncePerUser ? ' · One per user' : ''}
                                     </span>
                                 </div>
                                 <div className="cm-existing__controls">
