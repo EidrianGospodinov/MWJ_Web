@@ -1,0 +1,67 @@
+.um-page {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 64px);
+    padding: 24px;
+    background: #fff;
+    gap: 16px;
+    box-sizing: border-box;
+}
+
+.um-heading {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #222;
+    margin: 0;
+}
+
+.um-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #ccc;
+}
+
+.um-tab {
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #f5f5f5;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    color: #555;
+    cursor: pointer;
+}
+
+.um-tab--active {
+    background: #fff;
+    color: #222;
+    font-weight: 600;
+}
+
+.um-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.um-table th,
+.um-table td {
+    border: 1px solid #ccc;
+    padding: 8px 10px;
+    text-align: left;
+}
+
+.um-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+    color: #333;
+}
+
+.um-action {
+    border: 1px solid #ccc;
+    background: #f5f5f5;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    color: #333;
+    cursor: pointer;
+    margin-right: 6px;
+}
