@@ -31,3 +31,5 @@ amplifyconfiguration*
 /.claude
 /.claude
 .claude/settings.local.json
+amplify_outputs.main.json
+.claude/settings.local.json

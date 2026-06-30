@@ -40,7 +40,12 @@
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(a['apiId'], '|', a['name'], '|', a.get\\('uris',{}\\).get\\('GRAPHQL',''\\)\\) for a in d['graphqlApis']]\")",
       "Bash(python -c ' *)",
       "Bash(python -c \"import sys,json; t=json.load\\(sys.stdin\\)['TableDescription']; print\\('Status:',t['TableStatus']\\); print\\('ARN:',t['TableArn']\\)\")",
-      "Bash(python -c \"import sys,json; print\\('Deleting empty table:', json.load\\(sys.stdin\\)['TableDescription']['TableStatus']\\)\")"
+      "Bash(python -c \"import sys,json; print\\('Deleting empty table:', json.load\\(sys.stdin\\)['TableDescription']['TableStatus']\\)\")",
+      "Bash(aws iam *)",
+      "Bash(aws s3api *)",
+      "Bash(curl -s -X POST https://bojjblvgibcknfckmgveraeqh4.appsync-api.eu-west-2.amazonaws.com/graphql -H 'x-api-key: da2-si7x4mtgf5cq7fhyyagdnq2lze' -H 'Content-Type: application/json' -d '{\"query\":\"query { listContentManagements\\(limit: 5\\) { items { id title visibility isRecommended } } }\"}')",
+      "Bash(python -c 'import sys,json; d=json.load\\(sys.stdin\\); items=d['\\\\''data'\\\\'']['\\\\''listContentManagements'\\\\'']['\\\\''items'\\\\'']; *)",
+      "Bash(aws s3 *)"
     ]
   }
 }

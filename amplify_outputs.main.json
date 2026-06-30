@@ -26,9 +26,9 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://ocfinwmwdfczdihmncnodt4o5y.appsync-api.eu-west-2.amazonaws.com/graphql",
+    "url": "https://bojjblvgibcknfckmgveraeqh4.appsync-api.eu-west-2.amazonaws.com/graphql",
     "aws_region": "eu-west-2",
-    "api_key": "da2-rqzmct4amvglvgh5tcwmylhdm4",
+    "api_key": "da2-si7x4mtgf5cq7fhyyagdnq2lze",
     "default_authorization_type": "API_KEY",
     "authorization_types": [
       "AMAZON_COGNITO_USER_POOLS",
@@ -392,11 +392,11 @@
   },
   "storage": {
     "aws_region": "eu-west-2",
-    "bucket_name": "amplify-amplifyvitereactt-s3blockstoragebucket332b-d7zzflcdnudw",
+    "bucket_name": "amplify-d2qdzid5cdxp5j-ma-s3blockstoragebucket332b-qnmc5n2jozup",
     "buckets": [
       {
         "name": "s3BlockStorage",
-        "bucket_name": "amplify-amplifyvitereactt-s3blockstoragebucket332b-d7zzflcdnudw",
+        "bucket_name": "amplify-d2qdzid5cdxp5j-ma-s3blockstoragebucket332b-qnmc5n2jozup",
         "aws_region": "eu-west-2",
         "paths": {
           "images/*": {

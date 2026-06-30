@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import {uploadData} from 'aws-amplify/storage';
+import {uploadData, getUrl} from 'aws-amplify/storage';
 import '@aws-amplify/ui-react/styles.css';
 
 type Props = {
@@ -12,10 +12,28 @@ export default function MediaUploader({block, setBlocks, mediaType}: Props) {
     const [file, setFile] = React.useState<File | undefined>();
     const [isUploading, setIsUploading] = React.useState(false);
     const [uploadProgress, setUploadProgress] = React.useState<number>(0);
+    const [mediaUrl, setMediaUrl] = React.useState<string | null>(null);
+    const [playbackFailed, setPlaybackFailed] = React.useState(false);
 
     const folderName = mediaType === "image" ? "images" : "videos";
     const acceptType = mediaType === "image" ? "image/*" : "video/*";
     const buttonLabel = mediaType === "image" ? "Image" : "Video";
+
+
+    const storedKey: string | undefined = block.content?.dataUrl;
+
+    React.useEffect(() => {
+        let active = true;
+        setPlaybackFailed(false);
+        if (!storedKey) {
+            setMediaUrl(null);
+            return;
+        }
+        getUrl({path: storedKey})
+            .then(({url}) => { if (active) setMediaUrl(url.toString()); })
+            .catch(() => { if (active) setMediaUrl(null); });
+        return () => { active = false; };
+    }, [storedKey]);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setFile(event.target.files?.[0]);
@@ -76,11 +94,11 @@ export default function MediaUploader({block, setBlocks, mediaType}: Props) {
                 onClick={handleUpload}
                 disabled={!file || isUploading}
             >
-                {/*Show the percentage on the button while uploading */}
+
                 {isUploading ? `Uploading... ${uploadProgress}%` : `Upload ${buttonLabel}`}
             </button>
 
-            {/*The visual progress bar */}
+
             {isUploading && (
                 <div style={{width: '100%', backgroundColor: '#f0f0f0', borderRadius: '4px', overflow: 'hidden'}}>
                     <div
@@ -98,6 +116,47 @@ export default function MediaUploader({block, setBlocks, mediaType}: Props) {
                 <p style={{color: "green", fontSize: "0.9rem", margin: 0}}>
                     Successfully attached: {block.content.fileName}
                 </p>
+            )}
+
+
+            {storedKey && !isUploading && (
+                mediaUrl ? (
+                    <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+                        {mediaType === "video" ? (
+                            !playbackFailed ? (
+                                <video
+                                    src={mediaUrl}
+                                    controls
+                                    onError={() => setPlaybackFailed(true)}
+                                    style={{width: '100%', maxHeight: '360px', borderRadius: '4px', background: '#000'}}
+                                />
+                            ) : (
+                                <p style={{color: '#a15', fontSize: '0.85rem', margin: 0}}>
+                                    This video format can’t play in the browser
+                                    (e.g. .MOV / QuickTime). Use the link below, or
+                                    re-upload as .mp4 for in-page playback.
+                                </p>
+                            )
+                        ) : (
+                            <img
+                                src={mediaUrl}
+                                alt={block.content?.alt ?? block.content?.fileName ?? 'Attached image'}
+                                onError={() => setPlaybackFailed(true)}
+                                style={{width: '100%', maxHeight: '360px', objectFit: 'contain', borderRadius: '4px'}}
+                            />
+                        )}
+                        <a
+                            href={mediaUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{fontSize: '0.85rem'}}
+                        >
+                            Open {mediaType} in new tab ↗
+                        </a>
+                    </div>
+                ) : (
+                    <p style={{color: '#889', fontSize: '0.85rem', margin: 0}}>Loading preview…</p>
+                )
             )}
         </div>
     );
