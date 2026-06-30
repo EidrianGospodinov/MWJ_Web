@@ -237,6 +237,40 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
+.cm-existing__order {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.cm-existing__move {
+    width: 26px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #ddd;
+    border-radius: 5px;
+    background: #fafafa;
+    color: #555;
+    font-size: 0.7rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.cm-existing__move:hover:not(:disabled) {
+    background: #eef0ff;
+    border-color: #9fa8da;
+    color: #3949ab;
+}
+
+.cm-existing__move:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
 .cm-existing__info {
     display: flex;
     flex-direction: column;

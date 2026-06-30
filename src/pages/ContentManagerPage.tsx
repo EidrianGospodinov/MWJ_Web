@@ -199,6 +199,36 @@ export default function ContentManagerPage() {
         await fetchContent();
     };
 
+    const sortedContent = React.useMemo(
+        () =>
+            [...savedContent].sort((a, b) => {
+                const ao = a.displayOrder ?? Number.MAX_SAFE_INTEGER;
+                const bo = b.displayOrder ?? Number.MAX_SAFE_INTEGER;
+                if (ao !== bo) return ao - bo;
+                return String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
+            }),
+        [savedContent]
+    );
+
+    const moveModule = async (index: number, direction: -1 | 1) => {
+        const target = index + direction;
+        if (target < 0 || target >= sortedContent.length) return;
+        const current = sortedContent[index];
+        const neighbour = sortedContent[target];
+        const currentOrder = current.displayOrder ?? index;
+        const neighbourOrder = neighbour.displayOrder ?? target;
+        try {
+            await Promise.all([
+                client.models.ContentManagement.update({id: current.id, displayOrder: neighbourOrder}),
+                client.models.ContentManagement.update({id: neighbour.id, displayOrder: currentOrder}),
+            ]);
+            await fetchContent();
+        } catch (err) {
+            console.error('Reorder failed', err);
+            alert('Failed to reorder modules.');
+        }
+    };
+
     React.useEffect(() => {
         fetchContent();
     }, []);
@@ -360,9 +390,27 @@ export default function ContentManagerPage() {
                     <p className="cm-empty-state">No saved content yet.</p>
                 ) : (
                     <div className="cm-existing__list">
-                        {savedContent.map((item) => (
+                        {sortedContent.map((item, index) => (
                             <div key={item.id}
                                  className={`cm-existing__row${editingId === item.id ? ' cm-existing__row--editing' : ''}`}>
+                                <div className="cm-existing__order">
+                                    <button
+                                        className="cm-existing__move"
+                                        onClick={() => moveModule(index, -1)}
+                                        disabled={index === 0}
+                                        aria-label="Move up"
+                                    >
+                                        ▲
+                                    </button>
+                                    <button
+                                        className="cm-existing__move"
+                                        onClick={() => moveModule(index, 1)}
+                                        disabled={index === sortedContent.length - 1}
+                                        aria-label="Move down"
+                                    >
+                                        ▼
+                                    </button>
+                                </div>
                                 <div className="cm-existing__info">
                                     <span className="cm-existing__title">{item.title}</span>
                                     <span className="cm-existing__meta">

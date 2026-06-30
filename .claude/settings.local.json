@@ -45,7 +45,14 @@
       "Bash(aws s3api *)",
       "Bash(curl -s -X POST https://bojjblvgibcknfckmgveraeqh4.appsync-api.eu-west-2.amazonaws.com/graphql -H 'x-api-key: da2-si7x4mtgf5cq7fhyyagdnq2lze' -H 'Content-Type: application/json' -d '{\"query\":\"query { listContentManagements\\(limit: 5\\) { items { id title visibility isRecommended } } }\"}')",
       "Bash(python -c 'import sys,json; d=json.load\\(sys.stdin\\); items=d['\\\\''data'\\\\'']['\\\\''listContentManagements'\\\\'']['\\\\''items'\\\\'']; *)",
-      "Bash(aws s3 *)"
+      "Bash(aws s3 *)",
+      "Read(//c/Users/PC Gaming/Documents/MWJ/**)",
+      "Read(//c/Users/PC Gaming/Documents/MWJ/web/**)",
+      "Bash(python -c 'import json;d=json.load\\(open\\('\\\\''amplify_outputs.json'\\\\''\\)\\);import sys; *)",
+      "Bash(python -c \"import json;d=json.load\\(open\\('amplify_outputs.json'\\)\\);print\\('STORAGE:',json.dumps\\(d.get\\('storage',{}\\),indent=1\\)\\);print\\('VERSION:',d.get\\('version'\\)\\);print\\('TOP KEYS:',list\\(d.keys\\(\\)\\)\\)\")",
+      "Bash(python -c \"import json;d=json.load\\(open\\('amplify_outputs.main.json'\\)\\);print\\('pool',d['auth']['user_pool_id']\\);print\\('client',d['auth']['user_pool_client_id']\\);print\\('idpool',d['auth']['identity_pool_id']\\);print\\('data_url',d['data']['url']\\);print\\('bucket',d.get\\('storage',{}\\).get\\('bucket_name'\\)\\);print\\('models',list\\(d['data']['model_introspection']['models'].keys\\(\\)\\)\\)\")",
+      "Bash(rm -f amplify_outputs.main.json.bak)",
+      "Bash(echo \"tsc exit: $?\")"
     ]
   }
 }
