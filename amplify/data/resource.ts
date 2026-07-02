@@ -17,7 +17,7 @@ const schema = a.schema({
       isRecommended: a.boolean(),
       displayOrder: a.integer(),
     })
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.authenticated()]),
 
   Reward: a
     .model({
@@ -33,7 +33,7 @@ const schema = a.schema({
       createdBy: a.string(),
       codes: a.hasMany("RewardCode", "rewardId"),
     })
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.authenticated()]),
 
   RewardCode: a
     .model({
@@ -42,7 +42,7 @@ const schema = a.schema({
       codeString: a.string().required(),
       isClaimed: a.boolean().default(false),
     })
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.authenticated()]),
 
   Redemption: a
     .model({
@@ -53,7 +53,7 @@ const schema = a.schema({
       pointsCost: a.integer().required(),
       redeemedAt: a.datetime().required(),
     })
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.authenticated()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -61,11 +61,7 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: "apiKey",
-    // API Key is used for a.allow.public() rules
-    apiKeyAuthorizationMode: {
-      expiresInDays: 30,
-    },
+    defaultAuthorizationMode: "userPool",
   },
 });
 
