@@ -26,7 +26,6 @@ dist-ssr
 # amplify
 .amplify
 amplify_outputs*
-!amplify_outputs.main.json
 amplifyconfiguration*
 /.claude
 /.claude
