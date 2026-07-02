@@ -9,6 +9,7 @@ import {
     AdminDisableUserCommand,
     type UserType,
 } from '@aws-sdk/client-cognito-identity-provider';
+import outputs from '../../amplify_outputs.json';
 import './UserManagementPage.css';
 
 type TabKey = 'users' | 'admins';
@@ -23,11 +24,9 @@ type Row = {
     enabled: boolean;
 };
 
-// Admins and mobile users share the same Cognito user pool; the tabs are
-// distinguished client-side by custom:role (see ADMIN_ROLES / USER_ROLES).
-const ADMIN_POOL = 'eu-west-2_j40RJRiTE';
-const USER_POOL  = 'eu-west-2_j40RJRiTE';
-const REGION     = 'eu-west-2';
+const USER_POOL = outputs.auth.user_pool_id;
+const REGION = outputs.auth.aws_region;
+const ADMIN_POOL = USER_POOL;
 
 const USER_ROLES  = ['Student', 'Society Lead'];
 const ADMIN_ROLES = ['Super Admin', 'Content Admin', 'Rewards Admin'];
