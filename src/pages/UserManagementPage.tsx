@@ -6,6 +6,8 @@ import './UserManagementPage.css';
 
 type TabKey = 'users' | 'admins';
 
+type Pool = 'web' | 'mobile';
+
 type Row = {
     username: string;
     fullName: string;
@@ -14,6 +16,12 @@ type Row = {
     status: string;
     joined: string;
     enabled: boolean;
+    pool: Pool;
+};
+
+const POOL_LABELS: Record<Pool, string> = {
+    web: 'Web portal',
+    mobile: 'Mobile app',
 };
 
 const GROUP_LABELS: Record<AdminGroup, string> = {
@@ -72,6 +80,7 @@ export default function UserManagementPage() {
                         day: '2-digit', month: 'short', year: 'numeric',
                     }) : '–',
                     enabled: r.enabled ?? true,
+                    pool: (r.pool as Pool) ?? 'web',
                 }));
             setRows(all.filter((r) => (tab === 'users' ? r.group === null : r.group !== null)));
         } catch (e: unknown) {
@@ -94,7 +103,7 @@ export default function UserManagementPage() {
         setWorking(true);
         setError(null);
         try {
-            if (editGroup !== (editTarget.group ?? 'None')) {
+            if (editTarget.pool === 'web' && editGroup !== (editTarget.group ?? 'None')) {
                 const { errors } = await client.mutations.adminSetUserGroup({
                     username: editTarget.username,
                     group: editGroup === 'None' ? null : editGroup,
@@ -106,6 +115,7 @@ export default function UserManagementPage() {
                 const { errors } = await client.mutations.adminSetUserStatus({
                     username: editTarget.username,
                     enabled: wantEnabled,
+                    pool: editTarget.pool,
                 });
                 if (errors?.length) throw new Error(errors[0].message);
             }
@@ -123,7 +133,10 @@ export default function UserManagementPage() {
         setWorking(true);
         setError(null);
         try {
-            const { errors } = await client.mutations.adminDeleteUser({ username: confirmTarget.username });
+            const { errors } = await client.mutations.adminDeleteUser({
+                username: confirmTarget.username,
+                pool: confirmTarget.pool,
+            });
             if (errors?.length) throw new Error(errors[0].message);
             setConfirmTarget(null);
             await fetchRows();
@@ -160,6 +173,7 @@ export default function UserManagementPage() {
                         <tr>
                             <th>Full name</th>
                             <th>Email</th>
+                            <th>Account</th>
                             <th>Admin group</th>
                             <th>Status</th>
                             <th>Joined date</th>
@@ -169,13 +183,14 @@ export default function UserManagementPage() {
                     <tbody>
                         {rows.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="um-empty">No users found.</td>
+                                <td colSpan={7} className="um-empty">No users found.</td>
                             </tr>
                         ) : (
                             rows.map(row => (
-                                <tr key={row.username}>
+                                <tr key={`${row.pool}:${row.username}`}>
                                     <td>{row.fullName}</td>
                                     <td>{row.email}</td>
+                                    <td>{POOL_LABELS[row.pool]}</td>
                                     <td>{row.group ? GROUP_LABELS[row.group] : '–'}</td>
                                     <td>{row.status}</td>
                                     <td>{row.joined}</td>
@@ -248,16 +263,20 @@ export default function UserManagementPage() {
                         </select>
 
                         <label className="um-field-label">Admin group</label>
-                        <select
-                            className="um-field-select"
-                            value={editGroup}
-                            onChange={e => setEditGroup(e.target.value as AdminGroup | 'None')}
-                            disabled={editTarget.username === selfUsername}
-                        >
-                            {GROUP_OPTIONS.map(o => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
+                        {editTarget.pool === 'web' ? (
+                            <select
+                                className="um-field-select"
+                                value={editGroup}
+                                onChange={e => setEditGroup(e.target.value as AdminGroup | 'None')}
+                                disabled={editTarget.username === selfUsername}
+                            >
+                                {GROUP_OPTIONS.map(o => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <p className="um-modal-sub">Not applicable — this is a mobile app account.</p>
+                        )}
 
                         <div className="um-modal-actions">
                             <button

@@ -12,7 +12,12 @@ const schema = a.schema({
       isRecommended: a.boolean(),
       displayOrder: a.integer(),
     })
-    .authorization((allow) => [allow.groups(["SuperAdmin", "ContentAdmin"])]),
+    .authorization((allow) => [
+      allow.groups(["SuperAdmin", "ContentAdmin"]),
+      // Read-only API key so the student mobile app can list/display published
+      // modules without sharing this app's Cognito user pool.
+      allow.publicApiKey().to(["read"]),
+    ]),
 
   Reward: a
     .model({
@@ -59,6 +64,8 @@ const schema = a.schema({
     status: a.string(),
     joined: a.string(),
     group: a.string(),
+    // 'web' = this portal's own Cognito pool, 'mobile' = the student app's pool.
+    pool: a.string().required(),
   }),
 
   adminListUsers: a
@@ -76,14 +83,14 @@ const schema = a.schema({
 
   adminSetUserStatus: a
     .mutation()
-    .arguments({ username: a.string().required(), enabled: a.boolean().required() })
+    .arguments({ username: a.string().required(), enabled: a.boolean().required(), pool: a.string().required() })
     .returns(a.json())
     .authorization((allow) => [allow.groups(["SuperAdmin"])])
     .handler(a.handler.function(adminUsersFn)),
 
   adminDeleteUser: a
     .mutation()
-    .arguments({ username: a.string().required() })
+    .arguments({ username: a.string().required(), pool: a.string().required() })
     .returns(a.json())
     .authorization((allow) => [allow.groups(["SuperAdmin"])])
     .handler(a.handler.function(adminUsersFn)),
@@ -95,5 +102,6 @@ export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: "userPool",
+    apiKeyAuthorizationMode: { expiresInDays: 30 },
   },
 });
