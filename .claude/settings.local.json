@@ -52,7 +52,10 @@
       "Bash(python -c \"import json;d=json.load\\(open\\('amplify_outputs.json'\\)\\);print\\('STORAGE:',json.dumps\\(d.get\\('storage',{}\\),indent=1\\)\\);print\\('VERSION:',d.get\\('version'\\)\\);print\\('TOP KEYS:',list\\(d.keys\\(\\)\\)\\)\")",
       "Bash(python -c \"import json;d=json.load\\(open\\('amplify_outputs.main.json'\\)\\);print\\('pool',d['auth']['user_pool_id']\\);print\\('client',d['auth']['user_pool_client_id']\\);print\\('idpool',d['auth']['identity_pool_id']\\);print\\('data_url',d['data']['url']\\);print\\('bucket',d.get\\('storage',{}\\).get\\('bucket_name'\\)\\);print\\('models',list\\(d['data']['model_introspection']['models'].keys\\(\\)\\)\\)\")",
       "Bash(rm -f amplify_outputs.main.json.bak)",
-      "Bash(echo \"tsc exit: $?\")"
+      "Bash(echo \"tsc exit: $?\")",
+      "PowerShell(aws sts get-caller-identity *)",
+      "PowerShell(aws iam put-role-policy *)",
+      "PowerShell(aws iam get-role-policy *)"
     ]
   }
 }

@@ -9,6 +9,7 @@ export const auth = defineAuth({
   loginWith: {
     email: true,
   },
+  groups: ['SuperAdmin', 'ContentAdmin', 'RewardsAdmin'],
   triggers: {
     preSignUp
   }

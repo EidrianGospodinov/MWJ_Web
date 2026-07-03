@@ -1,10 +1,13 @@
 import {Tab} from '../../types';
+import type {AdminGroup} from '../../hooks/useAdminGroups';
+import {canAccessTab} from '../../config/access';
 import './Sidebar.css';
 import logo from '../../assets/Logo.png';
 
 type Props = {
     activeTab: Tab;
     onNavigate: (tab: Tab) => void;
+    groups: AdminGroup[];
 };
 
 const NAV_ITEMS: { label: string; tab: Tab }[] = [
@@ -18,7 +21,9 @@ const NAV_ITEMS: { label: string; tab: Tab }[] = [
     {label: 'Societies', tab: 'Societies'},
 ];
 
-export default function Sidebar({activeTab, onNavigate}: Props) {
+export default function Sidebar({activeTab, onNavigate, groups}: Props) {
+    const visibleItems = NAV_ITEMS.filter(({tab}) => canAccessTab(tab, groups));
+
     return (
         <aside className="sidebar">
             <div className="sidebar-top">
@@ -29,7 +34,7 @@ export default function Sidebar({activeTab, onNavigate}: Props) {
 
             <nav className="sidebar-nav">
                 <ul>
-                    {NAV_ITEMS.map(({label, tab}) => (
+                    {visibleItems.map(({label, tab}) => (
                         <li
                             key={tab}
                             className={activeTab === tab ? 'active' : ''}

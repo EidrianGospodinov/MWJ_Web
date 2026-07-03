@@ -1,13 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Tab } from '../../types';
+import type { AdminGroup } from '../../hooks/useAdminGroups';
+import { canAccessTab } from '../../config/access';
 import './TopBar.css';
 
 type Props = {
     onNavigate: (tab: Tab) => void;
     onSignOut: () => void;
+    groups: AdminGroup[];
 };
 
-export default function TopBar({ onNavigate, onSignOut }: Props) {
+export default function TopBar({ onNavigate, onSignOut, groups }: Props) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -45,9 +48,15 @@ export default function TopBar({ onNavigate, onSignOut }: Props) {
 
                 {dropdownOpen && (
                     <div className="dropdown-menu">
-                        <button className="dropdown-item" onClick={() => navigate('Profile')}>Profile</button>
-                        <button className="dropdown-item" onClick={() => navigate('Settings')}>Settings</button>
-                        <button className="dropdown-item" onClick={() => navigate('UserLogs')}>User Logs</button>
+                        {canAccessTab('Profile', groups) && (
+                            <button className="dropdown-item" onClick={() => navigate('Profile')}>Profile</button>
+                        )}
+                        {canAccessTab('Settings', groups) && (
+                            <button className="dropdown-item" onClick={() => navigate('Settings')}>Settings</button>
+                        )}
+                        {canAccessTab('UserLogs', groups) && (
+                            <button className="dropdown-item" onClick={() => navigate('UserLogs')}>User Logs</button>
+                        )}
                         <div className="dropdown-divider" />
                         <button className="dropdown-item dropdown-logout" onClick={() => { onSignOut(); setDropdownOpen(false); }}>
                             Logout

@@ -1,15 +1,7 @@
 import React from 'react';
-import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth';
-import {
-    CognitoIdentityProviderClient,
-    ListUsersCommand,
-    AdminDeleteUserCommand,
-    AdminUpdateUserAttributesCommand,
-    AdminEnableUserCommand,
-    AdminDisableUserCommand,
-    type UserType,
-} from '@aws-sdk/client-cognito-identity-provider';
-import outputs from '../../amplify_outputs.json';
+import { getCurrentUser } from 'aws-amplify/auth';
+import { client } from '../client';
+import type { AdminGroup } from '../hooks/useAdminGroups';
 import './UserManagementPage.css';
 
 type TabKey = 'users' | 'admins';
@@ -18,86 +10,47 @@ type Row = {
     username: string;
     fullName: string;
     email: string;
-    role: string;
+    group: AdminGroup | null;
     status: string;
     joined: string;
     enabled: boolean;
 };
 
-const USER_POOL = outputs.auth.user_pool_id;
-const REGION = outputs.auth.aws_region;
-const ADMIN_POOL = USER_POOL;
+const GROUP_LABELS: Record<AdminGroup, string> = {
+    SuperAdmin: 'Super Admin',
+    ContentAdmin: 'Content Admin',
+    RewardsAdmin: 'Rewards Admin',
+};
 
-const USER_ROLES  = ['Student', 'Society Lead'];
-const ADMIN_ROLES = ['Super Admin', 'Content Admin', 'Rewards Admin'];
+const GROUP_OPTIONS: { value: AdminGroup | 'None'; label: string }[] = [
+    { value: 'None', label: 'None (standard user)' },
+    { value: 'SuperAdmin', label: 'Super Admin' },
+    { value: 'ContentAdmin', label: 'Content Admin' },
+    { value: 'RewardsAdmin', label: 'Rewards Admin' },
+];
+
 const STATUS_OPTIONS = ['Active', 'Suspended'];
 
 const TABS: { key: TabKey; label: string }[] = [
-    { key: 'users',  label: 'Users' },
+    { key: 'users', label: 'Users' },
     { key: 'admins', label: 'Admins' },
 ];
 
-async function makeCognitoClient(): Promise<CognitoIdentityProviderClient> {
-    const session = await fetchAuthSession();
-    const creds = session.credentials!;
-    return new CognitoIdentityProviderClient({
-        region: REGION,
-        credentials: {
-            accessKeyId:     creds.accessKeyId,
-            secretAccessKey: creds.secretAccessKey,
-            sessionToken:    creds.sessionToken,
-        },
-    });
-}
-
-function mapRow(u: UserType): Row {
-    const attrs: Record<string, string> = Object.fromEntries(
-        (u.Attributes ?? []).map(a => [a.Name!, a.Value ?? ''])
-    );
-    const enabled = u.Enabled ?? true;
-    const fullName =
-        [attrs['given_name'], attrs['family_name']].filter(Boolean).join(' ')
-        || attrs['name']
-        || u.Username
-        || '';
-    const status = !enabled
-        ? 'Suspended'
-        : u.UserStatus === 'UNCONFIRMED' || u.UserStatus === 'FORCE_CHANGE_PASSWORD'
-        ? 'Pending'
-        : 'Active';
-    const joined = u.UserCreateDate
-        ? new Date(u.UserCreateDate).toLocaleDateString('en-GB', {
-              day: '2-digit', month: 'short', year: 'numeric',
-          })
-        : '–';
-    return {
-        username: u.Username ?? '',
-        fullName,
-        email:  attrs['email'] ?? '',
-        role:   attrs['custom:role'] ?? '',
-        status,
-        joined,
-        enabled,
-    };
-}
-
 export default function UserManagementPage() {
-    const [tab,            setTab]            = React.useState<TabKey>('users');
-    const [rows,           setRows]           = React.useState<Row[]>([]);
-    const [loading,        setLoading]        = React.useState(false);
-    const [error,          setError]          = React.useState<string | null>(null);
-    const [confirmTarget,  setConfirmTarget]  = React.useState<Row | null>(null);
-    const [editTarget,     setEditTarget]     = React.useState<Row | null>(null);
-    const [editStatus,     setEditStatus]     = React.useState('Active');
-    const [editRole,       setEditRole]       = React.useState('');
-    const [working,        setWorking]        = React.useState(false);
-    const [selfUsername,   setSelfUsername]   = React.useState('');
-
-    const poolId = tab === 'admins' ? ADMIN_POOL : USER_POOL;
+    const [tab, setTab] = React.useState<TabKey>('users');
+    const [rows, setRows] = React.useState<Row[]>([]);
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
+    const [confirmTarget, setConfirmTarget] = React.useState<Row | null>(null);
+    const [editTarget, setEditTarget] = React.useState<Row | null>(null);
+    const [editStatus, setEditStatus] = React.useState('Active');
+    const [editGroup, setEditGroup] = React.useState<AdminGroup | 'None'>('None');
+    const [working, setWorking] = React.useState(false);
+    const [selfUsername, setSelfUsername] = React.useState('');
 
     React.useEffect(() => {
         getCurrentUser()
-            .then(u => setSelfUsername(u.username))
+            .then((u) => setSelfUsername(u.username))
             .catch(() => {});
     }, []);
 
@@ -105,35 +58,35 @@ export default function UserManagementPage() {
         setLoading(true);
         setError(null);
         try {
-            const client = await makeCognitoClient();
-            const res = await client.send(
-                new ListUsersCommand({ UserPoolId: poolId, Limit: 60 })
-            );
-            // Both tabs read the same pool, so split by role: the Users tab
-            // shows only explicit student roles; everyone else (admin roles or
-            // no role yet) belongs to the Admins tab.
-            const all = (res.Users ?? []).map(mapRow);
-            setRows(
-                all.filter(r =>
-                    tab === 'users'
-                        ? USER_ROLES.includes(r.role)
-                        : !USER_ROLES.includes(r.role)
-                )
-            );
+            const { data, errors } = await client.queries.adminListUsers();
+            if (errors?.length) throw new Error(errors[0].message);
+            const all: Row[] = (data ?? [])
+                .filter((r): r is NonNullable<typeof r> => r !== null)
+                .map((r) => ({
+                    username: r.username,
+                    fullName: r.fullName ?? '',
+                    email: r.email ?? '',
+                    group: (r.group as AdminGroup | null) ?? null,
+                    status: r.status ?? '',
+                    joined: r.joined ? new Date(r.joined).toLocaleDateString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                    }) : '–',
+                    enabled: r.enabled ?? true,
+                }));
+            setRows(all.filter((r) => (tab === 'users' ? r.group === null : r.group !== null)));
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Failed to load users.');
         } finally {
             setLoading(false);
         }
-    }, [poolId, tab]);
+    }, [tab]);
 
     React.useEffect(() => { fetchRows(); }, [fetchRows]);
 
     const openEdit = (row: Row) => {
-        const roleOpts = tab === 'admins' ? ADMIN_ROLES : USER_ROLES;
         setEditTarget(row);
         setEditStatus(row.status === 'Suspended' ? 'Suspended' : 'Active');
-        setEditRole(row.role || roleOpts[0]);
+        setEditGroup(row.group ?? 'None');
     };
 
     const handleSave = async () => {
@@ -141,24 +94,20 @@ export default function UserManagementPage() {
         setWorking(true);
         setError(null);
         try {
-            const client = await makeCognitoClient();
-            if (editRole !== editTarget.role) {
-                await client.send(new AdminUpdateUserAttributesCommand({
-                    UserPoolId: poolId,
-                    Username:   editTarget.username,
-                    UserAttributes: [{ Name: 'custom:role', Value: editRole }],
-                }));
+            if (editGroup !== (editTarget.group ?? 'None')) {
+                const { errors } = await client.mutations.adminSetUserGroup({
+                    username: editTarget.username,
+                    group: editGroup === 'None' ? null : editGroup,
+                });
+                if (errors?.length) throw new Error(errors[0].message);
             }
-            if (editStatus === 'Suspended' && editTarget.enabled) {
-                await client.send(new AdminDisableUserCommand({
-                    UserPoolId: poolId,
-                    Username:   editTarget.username,
-                }));
-            } else if (editStatus === 'Active' && !editTarget.enabled) {
-                await client.send(new AdminEnableUserCommand({
-                    UserPoolId: poolId,
-                    Username:   editTarget.username,
-                }));
+            const wantEnabled = editStatus === 'Active';
+            if (wantEnabled !== editTarget.enabled) {
+                const { errors } = await client.mutations.adminSetUserStatus({
+                    username: editTarget.username,
+                    enabled: wantEnabled,
+                });
+                if (errors?.length) throw new Error(errors[0].message);
             }
             setEditTarget(null);
             await fetchRows();
@@ -174,11 +123,8 @@ export default function UserManagementPage() {
         setWorking(true);
         setError(null);
         try {
-            const client = await makeCognitoClient();
-            await client.send(new AdminDeleteUserCommand({
-                UserPoolId: poolId,
-                Username:   confirmTarget.username,
-            }));
+            const { errors } = await client.mutations.adminDeleteUser({ username: confirmTarget.username });
+            if (errors?.length) throw new Error(errors[0].message);
             setConfirmTarget(null);
             await fetchRows();
         } catch (e: unknown) {
@@ -187,8 +133,6 @@ export default function UserManagementPage() {
             setWorking(false);
         }
     };
-
-    const roleOptions = tab === 'admins' ? ADMIN_ROLES : USER_ROLES;
 
     return (
         <section className="content-area um-page">
@@ -216,27 +160,25 @@ export default function UserManagementPage() {
                         <tr>
                             <th>Full name</th>
                             <th>Email</th>
-                            <th>Role</th>
+                            <th>Admin group</th>
                             <th>Status</th>
                             <th>Joined date</th>
-                            <th>2F Auth</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {rows.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="um-empty">No users found.</td>
+                                <td colSpan={6} className="um-empty">No users found.</td>
                             </tr>
                         ) : (
                             rows.map(row => (
                                 <tr key={row.username}>
                                     <td>{row.fullName}</td>
                                     <td>{row.email}</td>
-                                    <td>{row.role || '–'}</td>
+                                    <td>{row.group ? GROUP_LABELS[row.group] : '–'}</td>
                                     <td>{row.status}</td>
                                     <td>{row.joined}</td>
-                                    <td>–</td>
                                     <td>
                                         <button
                                             className="um-action"
@@ -305,14 +247,15 @@ export default function UserManagementPage() {
                             ))}
                         </select>
 
-                        <label className="um-field-label">Role</label>
+                        <label className="um-field-label">Admin group</label>
                         <select
                             className="um-field-select"
-                            value={editRole}
-                            onChange={e => setEditRole(e.target.value)}
+                            value={editGroup}
+                            onChange={e => setEditGroup(e.target.value as AdminGroup | 'None')}
+                            disabled={editTarget.username === selfUsername}
                         >
-                            {roleOptions.map(r => (
-                                <option key={r} value={r}>{r}</option>
+                            {GROUP_OPTIONS.map(o => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
                             ))}
                         </select>
 
