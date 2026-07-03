@@ -18,6 +18,8 @@ export default function RewardsPage() {
     const [codesText, setCodesText] = React.useState('');
     const [pickupInstructions, setPickupInstructions] = React.useState('');
     const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(null);
+    const [notifyEmails, setNotifyEmails] = React.useState<string[]>([]);
+    const [notifyEmailInput, setNotifyEmailInput] = React.useState('');
     const [savedRewards, setSavedRewards] = React.useState<Schema['Reward']['type'][]>([]);
     const [availableCodes, setAvailableCodes] = React.useState<Record<string, number>>({});
     const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -35,6 +37,25 @@ export default function RewardsPage() {
             });
     };
 
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    const addNotifyEmail = () => {
+        const email = notifyEmailInput.trim().toLowerCase();
+        if (!email) return;
+        if (!EMAIL_RE.test(email)) {
+            alert('Please enter a valid email address.');
+            return;
+        }
+        if (!notifyEmails.includes(email)) {
+            setNotifyEmails([...notifyEmails, email]);
+        }
+        setNotifyEmailInput('');
+    };
+
+    const removeNotifyEmail = (email: string) => {
+        setNotifyEmails(notifyEmails.filter((e) => e !== email));
+    };
+
     const resetFields = () => {
         setTitle('');
         setDescription('');
@@ -46,6 +67,8 @@ export default function RewardsPage() {
         setCodesText('');
         setPickupInstructions('');
         setThumbnailKey(null);
+        setNotifyEmails([]);
+        setNotifyEmailInput('');
         setEditingId(null);
     };
 
@@ -105,6 +128,7 @@ export default function RewardsPage() {
                 pickupInstructions: type === 'Physical' ? pickupInstructions : null,
                 oncePerUser,
                 thumbnailKey,
+                notifyEmails,
             };
 
             let rewardId = editingId;
@@ -149,6 +173,8 @@ export default function RewardsPage() {
         setCodesText('');
         setPickupInstructions(item.pickupInstructions ?? '');
         setThumbnailKey(item.thumbnailKey ?? null);
+        setNotifyEmails((item.notifyEmails ?? []).filter((e): e is string => !!e));
+        setNotifyEmailInput('');
         setEditingId(item.id);
     };
 
@@ -307,6 +333,54 @@ export default function RewardsPage() {
                         />
                     </div>
 
+                    <div className="cm-card">
+                        <label className="cm-section-label" htmlFor="reward-notify-email">
+                            Claim Notification Emails
+                        </label>
+                        <div className="cm-email-row">
+                            <input
+                                id="reward-notify-email"
+                                className="cm-title-input"
+                                type="email"
+                                placeholder="admin@westminster.ac.uk"
+                                value={notifyEmailInput}
+                                onChange={(e) => setNotifyEmailInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        addNotifyEmail();
+                                    }
+                                }}
+                            />
+                            <button
+                                type="button"
+                                className="cm-action cm-action--add"
+                                onClick={addNotifyEmail}
+                            >
+                                Add
+                            </button>
+                        </div>
+                        {notifyEmails.length > 0 && (
+                            <div className="cm-email-list">
+                                {notifyEmails.map((email) => (
+                                    <div key={email} className="cm-existing__row">
+                                        <span className="cm-existing__title">{email}</span>
+                                        <button
+                                            type="button"
+                                            className="cm-existing__delete"
+                                            onClick={() => removeNotifyEmail(email)}
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <span className="cm-section-label">
+                            These addresses receive an email whenever a student claims this reward.
+                        </span>
+                    </div>
+
                     {type === 'Digital' ? (
                         <div className="cm-card">
                             <label className="cm-section-label" htmlFor="reward-codes">
@@ -401,6 +475,9 @@ export default function RewardsPage() {
                                         {' · '}
                                         {stockLabel(item)}
                                         {item.oncePerUser ? ' · One per user' : ''}
+                                        {item.notifyEmails?.length
+                                            ? ` · ${item.notifyEmails.length} notified on claim`
+                                            : ''}
                                     </span>
                                 </div>
                                 <div className="cm-existing__controls">

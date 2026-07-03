@@ -26,6 +26,7 @@ const schema = a.schema({
       pickupInstructions: a.string(),
       thumbnailKey: a.string(),
       createdBy: a.string(),
+      notifyEmails: a.string().array(),
       codes: a.hasMany("RewardCode", "rewardId"),
     })
     .authorization((allow) => [allow.groups(["SuperAdmin", "RewardsAdmin"])]),

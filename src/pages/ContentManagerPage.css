@@ -457,3 +457,29 @@
 .rh-table tbody tr:hover {
     background: #f7f7fb;
 }
+
+.cm-email-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cm-email-row .cm-title-input {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.cm-email-row .cm-action {
+    flex-shrink: 0;
+}
+
+.cm-email-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.cm-email-list .cm-existing__row {
+    padding: 8px 14px;
+}
