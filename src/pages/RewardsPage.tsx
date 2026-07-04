@@ -20,11 +20,13 @@ export default function RewardsPage() {
     const [pickupInstructions, setPickupInstructions] = React.useState('');
     const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(null);
     const [notifyEmails, setNotifyEmails] = React.useState<string[]>([]);
-    const [notifyEmailInput, setNotifyEmailInput] = React.useState('');
+    const [adminOptions, setAdminOptions] = React.useState<{email: string; group: string}[]>([]);
+    const [adminLoadFailed, setAdminLoadFailed] = React.useState(false);
     const [savedRewards, setSavedRewards] = React.useState<Schema['Reward']['type'][]>([]);
     const [availableCodes, setAvailableCodes] = React.useState<Record<string, number>>({});
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [redemptions, setRedemptions] = React.useState<Schema['Redemption']['type'][]>([]);
+    const [loadError, setLoadError] = React.useState<string | null>(null);
 
     const parseCodes = (raw: string): string[] => {
         const seen = new Set<string>();
@@ -38,23 +40,33 @@ export default function RewardsPage() {
             });
     };
 
-    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    const addNotifyEmail = () => {
-        const email = notifyEmailInput.trim().toLowerCase();
-        if (!email) return;
-        if (!EMAIL_RE.test(email)) {
-            alert('Please enter a valid email address.');
-            return;
-        }
-        if (!notifyEmails.includes(email)) {
-            setNotifyEmails([...notifyEmails, email]);
-        }
-        setNotifyEmailInput('');
+    const toggleNotifyEmail = (email: string) => {
+        setNotifyEmails((prev) =>
+            prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
+        );
     };
 
-    const removeNotifyEmail = (email: string) => {
-        setNotifyEmails(notifyEmails.filter((e) => e !== email));
+    const fetchAdmins = async () => {
+        try {
+            const {data, errors} = await client.queries.adminListUsers();
+            if (errors?.length) throw new Error(errors[0].message);
+            const seen = new Set<string>();
+            const options = (data ?? [])
+                .filter((r): r is NonNullable<typeof r> => !!r)
+                .filter((r) =>
+                    r.pool === 'web' &&
+                    r.enabled !== false &&
+                    (r.group === 'SuperAdmin' || r.group === 'RewardsAdmin') &&
+                    !!r.email
+                )
+                .map((r) => ({email: r.email!.toLowerCase(), group: r.group!}))
+                .filter((o) => (seen.has(o.email) ? false : (seen.add(o.email), true)));
+            setAdminOptions(options);
+            setAdminLoadFailed(false);
+        } catch (err) {
+            console.error('Could not load admin accounts', err);
+            setAdminLoadFailed(true);
+        }
     };
 
     const resetFields = () => {
@@ -69,33 +81,44 @@ export default function RewardsPage() {
         setPickupInstructions('');
         setThumbnailKey(null);
         setNotifyEmails([]);
-        setNotifyEmailInput('');
         setEditingId(null);
     };
 
     const fetchRedemptions = async () => {
         if (!client.models.Redemption) return;
-        const { data } = await client.models.Redemption.list();
-        const sorted = [...data].sort(
-            (a, b) => new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime()
-        );
-        setRedemptions(sorted);
+        try {
+            const { data, errors } = await client.models.Redemption.list();
+            if (errors?.length) throw new Error(errors[0].message);
+            const sorted = [...data].sort(
+                (a, b) => new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime()
+            );
+            setRedemptions(sorted);
+            setLoadError(null);
+        } catch (err) {
+            setLoadError(friendlyError(err, 'Could not load the redemption history. Try refreshing.'));
+        }
     };
 
     const fetchRewards = async () => {
         if (!client.models.Reward) return;
-        const {data} = await client.models.Reward.list();
-        setSavedRewards(data);
+        try {
+            const {data, errors} = await client.models.Reward.list();
+            if (errors?.length) throw new Error(errors[0].message);
+            setSavedRewards(data);
 
-        if (client.models.RewardCode) {
-            const {data: codes} = await client.models.RewardCode.list();
-            const counts: Record<string, number> = {};
-            codes.forEach((code) => {
-                if (code.rewardId && !code.isClaimed) {
-                    counts[code.rewardId] = (counts[code.rewardId] ?? 0) + 1;
-                }
-            });
-            setAvailableCodes(counts);
+            if (client.models.RewardCode) {
+                const {data: codes, errors: codeErrors} = await client.models.RewardCode.list();
+                if (codeErrors?.length) throw new Error(codeErrors[0].message);
+                const counts: Record<string, number> = {};
+                codes.forEach((code) => {
+                    if (code.rewardId && !code.isClaimed) {
+                        counts[code.rewardId] = (counts[code.rewardId] ?? 0) + 1;
+                    }
+                });
+                setAvailableCodes(counts);
+            }
+        } catch (err) {
+            setLoadError(friendlyError(err, 'Could not load the rewards. Try refreshing.'));
         }
     };
 
@@ -175,7 +198,6 @@ export default function RewardsPage() {
         setPickupInstructions(item.pickupInstructions ?? '');
         setThumbnailKey(item.thumbnailKey ?? null);
         setNotifyEmails((item.notifyEmails ?? []).filter((e): e is string => !!e));
-        setNotifyEmailInput('');
         setEditingId(item.id);
     };
 
@@ -196,6 +218,7 @@ export default function RewardsPage() {
     React.useEffect(() => {
         fetchRewards();
         fetchRedemptions();
+        fetchAdmins();
     }, []);
 
     const handleCancel = () => {
@@ -212,6 +235,18 @@ export default function RewardsPage() {
     return (
         <section className="content-area cm-page">
             <h1 className="cm-heading">Rewards</h1>
+
+            {loadError && (
+                <div className="cm-load-error">
+                    {loadError}
+                    <button
+                        className="cm-load-error__retry"
+                        onClick={() => { setLoadError(null); fetchRewards(); fetchRedemptions(); }}
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
 
             <div className="cm-body">
 
@@ -230,24 +265,40 @@ export default function RewardsPage() {
                         />
                     </div>
 
-                    <div className="cm-card">
-                        <span className="cm-section-label">Reward Thumbnail</span>
-                        <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
+                    <div className="cm-card cm-card--compact">
+                        <span className="cm-section-label">Reward Type</span>
+                        <div className="cm-segment" role="group" aria-label="Reward type">
+                            {(['Digital', 'Physical'] as RewardType[]).map((option) => (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    className={`cm-segment__btn${type === option ? ' cm-segment__btn--active' : ''}`}
+                                    onClick={() => setType(option)}
+                                >
+                                    {option}
+                                </button>
+                            ))}
+                        </div>
+                        <label
+                            className="cm-toggle cm-toggle--sm"
+                            title="Each user can redeem this reward only once, even if stock remains."
+                        >
+                            <span className="cm-toggle__text">Limit to one per user</span>
+                            <input
+                                type="checkbox"
+                                className="cm-toggle__input"
+                                checked={oncePerUser}
+                                onChange={(e) => setOncePerUser(e.target.checked)}
+                            />
+                            <span className="cm-toggle__track">
+                                <span className="cm-toggle__thumb"/>
+                            </span>
+                        </label>
                     </div>
 
                     <div className="cm-card">
-                        <label className="cm-section-label" htmlFor="reward-type">
-                            Reward Type
-                        </label>
-                        <select
-                            id="reward-type"
-                            className="cm-title-input"
-                            value={type}
-                            onChange={(e) => setType(e.target.value as RewardType)}
-                        >
-                            <option value="Digital">Digital</option>
-                            <option value="Physical">Physical</option>
-                        </select>
+                        <span className="cm-section-label">Reward Thumbnail</span>
+                        <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
                     </div>
 
                     {type === 'Physical' && (
@@ -284,23 +335,6 @@ export default function RewardsPage() {
                         </div>
                     )}
 
-                    <div className="cm-card">
-                        <label className="cm-toggle">
-                            <span className="cm-section-label">Limit to one per user</span>
-                            <input
-                                type="checkbox"
-                                className="cm-toggle__input"
-                                checked={oncePerUser}
-                                onChange={(e) => setOncePerUser(e.target.checked)}
-                            />
-                            <span className="cm-toggle__track">
-                                <span className="cm-toggle__thumb"/>
-                            </span>
-                        </label>
-                        <span className="cm-section-label">
-                            Each user can redeem this reward only once, even if stock remains.
-                        </span>
-                    </div>
                 </aside>
 
                 <div className="cm-right">
@@ -335,50 +369,52 @@ export default function RewardsPage() {
                     </div>
 
                     <div className="cm-card">
-                        <label className="cm-section-label" htmlFor="reward-notify-email">
-                            Claim Notification Emails
-                        </label>
-                        <div className="cm-email-row">
-                            <input
-                                id="reward-notify-email"
-                                className="cm-title-input"
-                                type="email"
-                                placeholder="admin@westminster.ac.uk"
-                                value={notifyEmailInput}
-                                onChange={(e) => setNotifyEmailInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        addNotifyEmail();
-                                    }
-                                }}
-                            />
-                            <button
-                                type="button"
-                                className="cm-action cm-action--add"
-                                onClick={addNotifyEmail}
-                            >
-                                Add
-                            </button>
-                        </div>
-                        {notifyEmails.length > 0 && (
-                            <div className="cm-email-list">
-                                {notifyEmails.map((email) => (
-                                    <div key={email} className="cm-existing__row">
-                                        <span className="cm-existing__title">{email}</span>
-                                        <button
-                                            type="button"
-                                            className="cm-existing__delete"
-                                            onClick={() => removeNotifyEmail(email)}
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
+                        <span className="cm-section-label">Claim Notification Emails</span>
+                        {adminLoadFailed ? (
+                            <span className="cm-hint">
+                                Could not load the admin accounts. Refresh the page to try again.
+                            </span>
+                        ) : adminOptions.length === 0 ? (
+                            <span className="cm-hint">
+                                No Super Admin or Rewards Admin accounts were found.
+                            </span>
+                        ) : (
+                            <div className="cm-admin-list">
+                                {adminOptions.map((admin) => (
+                                    <label key={admin.email} className="cm-admin-option">
+                                        <input
+                                            type="checkbox"
+                                            checked={notifyEmails.includes(admin.email)}
+                                            onChange={() => toggleNotifyEmail(admin.email)}
+                                        />
+                                        <span className="cm-admin-option__email">{admin.email}</span>
+                                        <span className="cm-admin-option__role">
+                                            {admin.group === 'SuperAdmin' ? 'Super Admin' : 'Rewards Admin'}
+                                        </span>
+                                    </label>
                                 ))}
                             </div>
                         )}
-                        <span className="cm-section-label">
-                            These addresses receive an email whenever a student claims this reward.
+                        {notifyEmails.filter((e) => !adminOptions.some((a) => a.email === e)).length > 0 && (
+                            <div className="cm-email-list">
+                                {notifyEmails
+                                    .filter((e) => !adminOptions.some((a) => a.email === e))
+                                    .map((email) => (
+                                        <div key={email} className="cm-existing__row">
+                                            <span className="cm-existing__title">{email}</span>
+                                            <button
+                                                type="button"
+                                                className="cm-existing__delete"
+                                                onClick={() => toggleNotifyEmail(email)}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
+                        <span className="cm-hint">
+                            Selected admins receive an email whenever a student claims this reward.
                         </span>
                     </div>
 
@@ -431,7 +467,12 @@ export default function RewardsPage() {
             </div>
 
             <div className="cm-existing">
-                <h2 className="cm-existing__heading">Redemption History</h2>
+                <div className="cm-existing__header-row">
+                    <h2 className="cm-existing__heading">Redemption History</h2>
+                    <button className="cm-refresh-btn" onClick={fetchRedemptions}>
+                        Refresh
+                    </button>
+                </div>
                 {redemptions.length === 0 ? (
                     <p className="cm-empty-state">No redemptions yet.</p>
                 ) : (

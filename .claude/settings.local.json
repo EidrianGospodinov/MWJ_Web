@@ -55,7 +55,16 @@
       "Bash(echo \"tsc exit: $?\")",
       "PowerShell(aws sts get-caller-identity *)",
       "PowerShell(aws iam put-role-policy *)",
-      "PowerShell(aws iam get-role-policy *)"
+      "PowerShell(aws iam get-role-policy *)",
+      "PowerShell(aws s3api *)",
+      "PowerShell(ConvertTo-Json *)",
+      "PowerShell($roles = aws cognito-identity get-identity-pool-roles --identity-pool-id \"eu-west-2:63287135-4071-4e16-a844-587415916b08\" | ConvertFrom-Json; $roles.Roles | ConvertTo-Json; $roles.RoleMappings | ConvertTo-Json -Depth 5)",
+      "PowerShell($g = aws cognito-idp get-group --group-name RewardsAdmin --user-pool-id eu-west-2_7zN7HH2ja | ConvertFrom-Json; $g.Group.RoleArn; $g2 = aws cognito-idp get-group --group-name SuperAdmin --user-pool-id eu-west-2_7zN7HH2ja | ConvertFrom-Json; $g2.Group.RoleArn)",
+      "PowerShell(aws iam *)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 30)",
+      "PowerShell(Get-CimInstance *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(aws s3 rm *)"
     ]
   }
 }

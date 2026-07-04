@@ -11,11 +11,15 @@ import {
     type UserType,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand, BatchGetCommand, GetCommand, PutCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { randomUUID } from 'node:crypto';
 
 const WEB_USER_POOL_ID = process.env.ADMIN_USER_POOL_ID!;
 const MOBILE_USER_POOL_ID = process.env.MOBILE_USER_POOL_ID;
 const MOBILE_USERPROFILE_TABLE = process.env.MOBILE_USERPROFILE_TABLE;
+const REWARD_TABLE = process.env.REWARD_TABLE;
+const REDEMPTION_TABLE = process.env.REDEMPTION_TABLE;
+const REWARDCODE_TABLE = process.env.REWARDCODE_TABLE;
 
 const ADMIN_GROUPS = ['SuperAdmin', 'ContentAdmin', 'RewardsAdmin'] as const;
 type AdminGroup = typeof ADMIN_GROUPS[number];
@@ -265,6 +269,139 @@ export const handler = async (event: AdminEvent) => {
                 }
                 throw err;
             }
+        }
+
+        case 'redeemReward': {
+            if (!MOBILE_USERPROFILE_TABLE || !REWARD_TABLE || !REDEMPTION_TABLE || !REWARDCODE_TABLE) {
+                throw new Error('Redemption is not configured.');
+            }
+            const userId = event.arguments.userId as string;
+            const userEmail = event.arguments.userEmail as string;
+            const rewardId = event.arguments.rewardId as string;
+
+            const rewardRes = await ddb.send(new GetCommand({ TableName: REWARD_TABLE, Key: { id: rewardId } }));
+            const reward = rewardRes.Item;
+            if (!reward) throw new Error('This reward no longer exists.');
+            const cost = typeof reward.pointsCost === 'number' ? reward.pointsCost : 0;
+
+            if (reward.oncePerUser === true) {
+                const existing = await ddb.send(new ScanCommand({
+                    TableName: REDEMPTION_TABLE,
+                    FilterExpression: 'userId = :u AND rewardId = :r',
+                    ExpressionAttributeValues: { ':u': userId, ':r': rewardId },
+                }));
+                if ((existing.Items ?? []).length > 0) {
+                    throw new Error('You have already redeemed this reward.');
+                }
+            }
+
+            let availableCodes: Record<string, unknown>[] = [];
+            if (reward.type === 'Digital') {
+                const codes = await ddb.send(new ScanCommand({
+                    TableName: REWARDCODE_TABLE,
+                    FilterExpression: 'rewardId = :r AND (attribute_not_exists(isClaimed) OR isClaimed = :f)',
+                    ExpressionAttributeValues: { ':r': rewardId, ':f': false },
+                }));
+                availableCodes = codes.Items ?? [];
+                if (availableCodes.length === 0) throw new Error('This reward has no codes left.');
+            } else if (reward.type === 'Physical' && reward.isInfinite !== true) {
+                const inv = typeof reward.inventoryCount === 'number' ? reward.inventoryCount : 0;
+                if (inv <= 0) throw new Error('This reward is out of stock.');
+            }
+
+            let newBalance: number;
+            if (cost > 0) {
+                try {
+                    const res = await ddb.send(new UpdateCommand({
+                        TableName: MOBILE_USERPROFILE_TABLE,
+                        Key: { id: userId },
+                        UpdateExpression: 'SET points = points - :cost',
+                        ConditionExpression: 'attribute_exists(id) AND points >= :cost',
+                        ExpressionAttributeValues: { ':cost': cost },
+                        ReturnValues: 'ALL_NEW',
+                    }));
+                    newBalance = typeof res.Attributes?.points === 'number' ? res.Attributes.points : 0;
+                } catch (err) {
+                    if (err instanceof Error && err.name === 'ConditionalCheckFailedException') {
+                        throw new Error('You do not have enough points for this reward.');
+                    }
+                    throw err;
+                }
+            } else {
+                const profile = await ddb.send(new GetCommand({ TableName: MOBILE_USERPROFILE_TABLE, Key: { id: userId } }));
+                if (!profile.Item) throw new Error('No app profile was found for this account.');
+                newBalance = typeof profile.Item.points === 'number' ? profile.Item.points : 0;
+            }
+
+            const refund = async () => {
+                if (cost <= 0) return;
+                await ddb.send(new UpdateCommand({
+                    TableName: MOBILE_USERPROFILE_TABLE,
+                    Key: { id: userId },
+                    UpdateExpression: 'SET points = if_not_exists(points, :zero) + :cost',
+                    ExpressionAttributeValues: { ':cost': cost, ':zero': 0 },
+                })).catch(() => {});
+            };
+
+            let claimedCode: string | null = null;
+            if (reward.type === 'Digital') {
+                for (const code of availableCodes) {
+                    try {
+                        await ddb.send(new UpdateCommand({
+                            TableName: REWARDCODE_TABLE,
+                            Key: { id: code.id },
+                            UpdateExpression: 'SET isClaimed = :t',
+                            ConditionExpression: 'attribute_not_exists(isClaimed) OR isClaimed = :f',
+                            ExpressionAttributeValues: { ':t': true, ':f': false },
+                        }));
+                        claimedCode = typeof code.codeString === 'string' ? code.codeString : null;
+                        break;
+                    } catch (err) {
+                        if (err instanceof Error && err.name === 'ConditionalCheckFailedException') continue;
+                        await refund();
+                        throw err;
+                    }
+                }
+                if (!claimedCode) {
+                    await refund();
+                    throw new Error('This reward has no codes left.');
+                }
+            } else if (reward.type === 'Physical' && reward.isInfinite !== true) {
+                try {
+                    await ddb.send(new UpdateCommand({
+                        TableName: REWARD_TABLE,
+                        Key: { id: rewardId },
+                        UpdateExpression: 'SET inventoryCount = inventoryCount - :one',
+                        ConditionExpression: 'inventoryCount >= :one',
+                        ExpressionAttributeValues: { ':one': 1 },
+                    }));
+                } catch (err) {
+                    await refund();
+                    if (err instanceof Error && err.name === 'ConditionalCheckFailedException') {
+                        throw new Error('This reward is out of stock.');
+                    }
+                    throw err;
+                }
+            }
+
+            const now = new Date().toISOString();
+            await ddb.send(new PutCommand({
+                TableName: REDEMPTION_TABLE,
+                Item: {
+                    id: randomUUID(),
+                    userId,
+                    userEmail,
+                    rewardId,
+                    rewardTitle: typeof reward.title === 'string' ? reward.title : '',
+                    pointsCost: cost,
+                    redeemedAt: now,
+                    createdAt: now,
+                    updatedAt: now,
+                    __typename: 'Redemption',
+                },
+            }));
+
+            return { success: true, newBalance, code: claimedCode };
         }
 
         default:

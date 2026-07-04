@@ -105,6 +105,17 @@ const schema = a.schema({
     .returns(a.json())
     .authorization((allow) => [allow.groups(["SuperAdmin", "RewardsAdmin"])])
     .handler(a.handler.function(adminUsersFn)),
+
+  redeemReward: a
+    .mutation()
+    .arguments({
+      userId: a.string().required(),
+      userEmail: a.string().required(),
+      rewardId: a.string().required(),
+    })
+    .returns(a.json())
+    .authorization((allow) => [allow.publicApiKey()])
+    .handler(a.handler.function(adminUsersFn)),
 });
 
 export type Schema = ClientSchema<typeof schema>;

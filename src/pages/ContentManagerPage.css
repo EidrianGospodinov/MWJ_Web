@@ -219,6 +219,55 @@
     margin: 0;
 }
 
+.cm-existing__header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.cm-refresh-btn {
+    border: 1px solid #ccc;
+    background: #f5f5f5;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    color: #333;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.cm-refresh-btn:hover {
+    background: #ececec;
+}
+
+.cm-load-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fff3f3;
+    border: 1px solid #f5c2c2;
+    color: #b00;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.cm-load-error__retry {
+    border: 1px solid #b00;
+    background: #fff;
+    color: #b00;
+    padding: 5px 14px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.cm-load-error__retry:hover {
+    background: #fdeaea;
+}
+
 .cm-existing__list {
     display: flex;
     flex-direction: column;
@@ -482,4 +531,112 @@
 
 .cm-email-list .cm-existing__row {
     padding: 8px 14px;
+}
+
+/* ── Compact settings card (reward type + one-per-user) ──────── */
+.cm-card--compact {
+    padding: 14px 16px;
+    gap: 10px;
+}
+
+.cm-segment {
+    display: flex;
+    background: #f0f1f5;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.cm-segment__btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.cm-segment__btn--active {
+    background: #fff;
+    color: #3b4acc;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.cm-toggle--sm .cm-toggle__track {
+    width: 32px;
+    height: 18px;
+}
+
+.cm-toggle--sm .cm-toggle__thumb {
+    width: 14px;
+    height: 14px;
+}
+
+.cm-toggle--sm .cm-toggle__input:checked + .cm-toggle__track .cm-toggle__thumb {
+    transform: translateX(14px);
+}
+
+.cm-toggle__text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #444;
+}
+
+/* ── Hints and admin picker ──────────────────────────────────── */
+.cm-hint {
+    font-size: 0.75rem;
+    color: #999;
+    line-height: 1.4;
+}
+
+.cm-admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cm-admin-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1.5px solid #ebebeb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.cm-admin-option:hover {
+    border-color: #c5cae9;
+    background: #fafbff;
+}
+
+.cm-admin-option input {
+    accent-color: #5b6af5;
+}
+
+.cm-admin-option__email {
+    flex: 1;
+    font-size: 0.88rem;
+    color: #222;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cm-admin-option__role {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #3949ab;
+    background: #eef0ff;
+    padding: 3px 8px;
+    border-radius: 999px;
 }

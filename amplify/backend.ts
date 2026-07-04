@@ -56,6 +56,31 @@ adminUsersLambda.addToRolePolicy(
   })
 );
 
+const redemptionTableForRedeem = backend.data.resources.tables['Redemption'];
+const rewardTableForRedeem = backend.data.resources.tables['Reward'];
+const rewardCodeTable = backend.data.resources.tables['RewardCode'];
+adminUsersLambda.addEnvironment('REWARD_TABLE', rewardTableForRedeem.tableName);
+adminUsersLambda.addEnvironment('REDEMPTION_TABLE', redemptionTableForRedeem.tableName);
+adminUsersLambda.addEnvironment('REWARDCODE_TABLE', rewardCodeTable.tableName);
+adminUsersLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
+    resources: [rewardTableForRedeem.tableArn],
+  })
+);
+adminUsersLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:PutItem', 'dynamodb:Scan'],
+    resources: [redemptionTableForRedeem.tableArn],
+  })
+);
+adminUsersLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:Scan', 'dynamodb:UpdateItem'],
+    resources: [rewardCodeTable.tableArn],
+  })
+);
+
 // Reward claim notifications: whenever a Redemption row is inserted (by any
 // client — the student claim flow lives outside this repo), a stream-triggered
 // Lambda emails everyone on the claimed reward's notifyEmails list via SES.
@@ -85,8 +110,7 @@ notifierLambda.addToRolePolicy(
   })
 );
 notifierLambda.addEnvironment('REWARD_TABLE_NAME', rewardTable.tableName);
-// Placeholder until the real Westminster sender is verified in SES.
-notifierLambda.addEnvironment('SES_SENDER_EMAIL', 'rewards@westminster.ac.uk');
+notifierLambda.addEnvironment('SES_SENDER_EMAIL', 'nikolaosntvouretsenski@gmail.com');
 
 const s3Bucket = backend.storage.resources.bucket;
 const cfnBucket = s3Bucket.node.defaultChild as s3.CfnBucket;
