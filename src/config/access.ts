@@ -3,7 +3,7 @@ import type { AdminGroup } from '../hooks/useAdminGroups';
 
 export const TAB_ACCESS: Record<Tab, AdminGroup[]> = {
     Dashboard: ['SuperAdmin', 'ContentAdmin', 'RewardsAdmin'],
-    User: ['SuperAdmin'],
+    User: ['SuperAdmin', 'RewardsAdmin'],
     Content: ['SuperAdmin', 'ContentAdmin'],
     Rewards: ['SuperAdmin', 'RewardsAdmin'],
     SystemLogs: ['SuperAdmin'],

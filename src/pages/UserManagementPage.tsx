@@ -2,6 +2,8 @@ import React from 'react';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { client } from '../client';
 import type { AdminGroup } from '../hooks/useAdminGroups';
+import { useAdminGroups } from '../hooks/useAdminGroups';
+import { friendlyError } from '../utils/errors';
 import './UserManagementPage.css';
 
 type TabKey = 'users' | 'admins';
@@ -17,6 +19,7 @@ type Row = {
     joined: string;
     enabled: boolean;
     pool: Pool;
+    points: number | null;
 };
 
 const POOL_LABELS: Record<Pool, string> = {
@@ -44,7 +47,12 @@ const TABS: { key: TabKey; label: string }[] = [
     { key: 'admins', label: 'Admins' },
 ];
 
+type PointsMode = 'add' | 'deduct';
+
 export default function UserManagementPage() {
+    const groups = useAdminGroups();
+    const isSuperAdmin = (groups ?? []).includes('SuperAdmin');
+
     const [tab, setTab] = React.useState<TabKey>('users');
     const [rows, setRows] = React.useState<Row[]>([]);
     const [loading, setLoading] = React.useState(false);
@@ -55,6 +63,11 @@ export default function UserManagementPage() {
     const [editGroup, setEditGroup] = React.useState<AdminGroup | 'None'>('None');
     const [working, setWorking] = React.useState(false);
     const [selfUsername, setSelfUsername] = React.useState('');
+    const [pointsTarget, setPointsTarget] = React.useState<Row | null>(null);
+    const [pointsAmount, setPointsAmount] = React.useState('');
+    const [pointsMode, setPointsMode] = React.useState<PointsMode>('add');
+    const [pointsStep, setPointsStep] = React.useState<1 | 2>(1);
+    const [pointsError, setPointsError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         getCurrentUser()
@@ -81,10 +94,11 @@ export default function UserManagementPage() {
                     }) : '–',
                     enabled: r.enabled ?? true,
                     pool: (r.pool as Pool) ?? 'web',
+                    points: r.points ?? null,
                 }));
             setRows(all.filter((r) => (tab === 'users' ? r.group === null : r.group !== null)));
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Failed to load users.');
+            setError(friendlyError(e, 'Could not load the user list. Please try again.'));
         } finally {
             setLoading(false);
         }
@@ -96,6 +110,52 @@ export default function UserManagementPage() {
         setEditTarget(row);
         setEditStatus(row.status === 'Suspended' ? 'Suspended' : 'Active');
         setEditGroup(row.group ?? 'None');
+    };
+
+    const openPoints = (row: Row) => {
+        setPointsTarget(row);
+        setPointsAmount('');
+        setPointsMode('add');
+        setPointsStep(1);
+        setPointsError(null);
+    };
+
+    const closePoints = () => {
+        if (working) return;
+        setPointsTarget(null);
+    };
+
+    const parsedAmount = Number(pointsAmount);
+    const amountValid = Number.isInteger(parsedAmount) && parsedAmount > 0 && parsedAmount <= 100000;
+
+    const handlePointsContinue = () => {
+        setPointsError(null);
+        if (!amountValid) {
+            setPointsError('Enter a whole number of points between 1 and 100,000.');
+            return;
+        }
+        setPointsStep(2);
+    };
+
+    const handlePointsConfirm = async () => {
+        if (!pointsTarget || !amountValid) return;
+        setWorking(true);
+        setPointsError(null);
+        try {
+            const signed = pointsMode === 'add' ? parsedAmount : -parsedAmount;
+            const { errors } = await client.mutations.adminAddPoints({
+                username: pointsTarget.username,
+                amount: signed,
+            });
+            if (errors?.length) throw new Error(errors[0].message);
+            setPointsTarget(null);
+            await fetchRows();
+        } catch (e: unknown) {
+            setPointsError(friendlyError(e, 'The points update failed. Please try again.'));
+            setPointsStep(1);
+        } finally {
+            setWorking(false);
+        }
     };
 
     const handleSave = async () => {
@@ -122,7 +182,7 @@ export default function UserManagementPage() {
             setEditTarget(null);
             await fetchRows();
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Update failed.');
+            setError(friendlyError(e, 'Saving the changes failed. Please try again.'));
         } finally {
             setWorking(false);
         }
@@ -141,7 +201,7 @@ export default function UserManagementPage() {
             setConfirmTarget(null);
             await fetchRows();
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Delete failed.');
+            setError(friendlyError(e, 'Deleting the user failed. Please try again.'));
         } finally {
             setWorking(false);
         }
@@ -175,6 +235,7 @@ export default function UserManagementPage() {
                             <th>Email</th>
                             <th>Account</th>
                             <th>Admin group</th>
+                            <th>Points</th>
                             <th>Status</th>
                             <th>Joined date</th>
                             <th>Actions</th>
@@ -183,7 +244,7 @@ export default function UserManagementPage() {
                     <tbody>
                         {rows.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="um-empty">No users found.</td>
+                                <td colSpan={8} className="um-empty">No users found.</td>
                             </tr>
                         ) : (
                             rows.map(row => (
@@ -192,22 +253,35 @@ export default function UserManagementPage() {
                                     <td>{row.email}</td>
                                     <td>{POOL_LABELS[row.pool]}</td>
                                     <td>{row.group ? GROUP_LABELS[row.group] : '–'}</td>
+                                    <td>{row.pool === 'mobile' ? (row.points ?? 0) : '–'}</td>
                                     <td>{row.status}</td>
                                     <td>{row.joined}</td>
                                     <td>
-                                        <button
-                                            className="um-action"
-                                            onClick={() => openEdit(row)}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            className="um-action um-action--danger"
-                                            disabled={row.username === selfUsername}
-                                            onClick={() => setConfirmTarget(row)}
-                                        >
-                                            Remove
-                                        </button>
+                                        {row.pool === 'mobile' && (
+                                            <button
+                                                className="um-action"
+                                                onClick={() => openPoints(row)}
+                                            >
+                                                Points
+                                            </button>
+                                        )}
+                                        {isSuperAdmin && (
+                                            <>
+                                                <button
+                                                    className="um-action"
+                                                    onClick={() => openEdit(row)}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="um-action um-action--danger"
+                                                    disabled={row.username === selfUsername}
+                                                    onClick={() => setConfirmTarget(row)}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </>
+                                        )}
                                     </td>
                                 </tr>
                             ))
@@ -239,6 +313,89 @@ export default function UserManagementPage() {
                                 {working ? 'Deleting…' : 'Delete'}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {pointsTarget && (
+                <div className="um-overlay" onClick={closePoints}>
+                    <div className="um-modal" onClick={e => e.stopPropagation()}>
+                        <h2 className="um-modal-title">
+                            {pointsStep === 1 ? 'Adjust Points' : 'Confirm Points Change'}
+                        </h2>
+                        <p className="um-modal-sub">
+                            {pointsTarget.fullName || pointsTarget.email}
+                            {' · '}Current balance: {pointsTarget.points ?? 0} points
+                        </p>
+
+                        {pointsError && <div className="um-error">{pointsError}</div>}
+
+                        {pointsStep === 1 ? (
+                            <>
+                                <label className="um-field-label">Action</label>
+                                <select
+                                    className="um-field-select"
+                                    value={pointsMode}
+                                    onChange={e => setPointsMode(e.target.value as PointsMode)}
+                                >
+                                    <option value="add">Add points</option>
+                                    <option value="deduct">Deduct points</option>
+                                </select>
+
+                                <label className="um-field-label">Amount</label>
+                                <input
+                                    className="um-field-select"
+                                    type="number"
+                                    min={1}
+                                    max={100000}
+                                    step={1}
+                                    placeholder="e.g. 50"
+                                    value={pointsAmount}
+                                    onChange={e => setPointsAmount(e.target.value)}
+                                />
+
+                                <div className="um-modal-actions">
+                                    <button className="um-btn" onClick={closePoints} disabled={working}>
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="um-btn um-btn--primary"
+                                        onClick={handlePointsContinue}
+                                        disabled={working || pointsAmount === ''}
+                                    >
+                                        Continue
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <p className="um-dialog-msg">
+                                    You are about to <strong>{pointsMode === 'add' ? 'add' : 'deduct'} {parsedAmount} points</strong>
+                                    {' '}{pointsMode === 'add' ? 'to' : 'from'}{' '}
+                                    <strong>{pointsTarget.fullName || pointsTarget.email}</strong>.
+                                    New balance will be{' '}
+                                    <strong>
+                                        {Math.max(0, (pointsTarget.points ?? 0) + (pointsMode === 'add' ? parsedAmount : -parsedAmount))} points
+                                    </strong>.
+                                </p>
+                                <div className="um-modal-actions">
+                                    <button
+                                        className="um-btn"
+                                        onClick={() => setPointsStep(1)}
+                                        disabled={working}
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        className="um-btn um-btn--primary"
+                                        onClick={handlePointsConfirm}
+                                        disabled={working}
+                                    >
+                                        {working ? 'Applying…' : 'Confirm'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

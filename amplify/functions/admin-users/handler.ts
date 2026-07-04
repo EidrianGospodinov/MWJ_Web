@@ -10,17 +10,19 @@ import {
     AdminDeleteUserCommand,
     type UserType,
 } from '@aws-sdk/client-cognito-identity-provider';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
 
 const WEB_USER_POOL_ID = process.env.ADMIN_USER_POOL_ID!;
-// The student mobile app is a separate Amplify project with its own Cognito
-// pool — this lets the portal list/suspend/delete those accounts too.
 const MOBILE_USER_POOL_ID = process.env.MOBILE_USER_POOL_ID;
+const MOBILE_USERPROFILE_TABLE = process.env.MOBILE_USERPROFILE_TABLE;
 
 const ADMIN_GROUPS = ['SuperAdmin', 'ContentAdmin', 'RewardsAdmin'] as const;
 type AdminGroup = typeof ADMIN_GROUPS[number];
 type Pool = 'web' | 'mobile';
 
 const cognito = new CognitoIdentityProviderClient({});
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 function isAdminGroup(name: string): name is AdminGroup {
     return (ADMIN_GROUPS as readonly string[]).includes(name);
@@ -36,7 +38,14 @@ function poolId(pool: Pool): string {
     return MOBILE_USER_POOL_ID;
 }
 
-function mapRow(u: UserType, pool: Pool, group: AdminGroup | null) {
+function callerGroups(event: AdminEvent): string[] {
+    const raw = event.identity?.claims?.['cognito:groups'];
+    if (Array.isArray(raw)) return raw.map(String);
+    if (typeof raw === 'string') return [raw];
+    return [];
+}
+
+function mapRow(u: UserType, pool: Pool, group: AdminGroup | null, points: number | null) {
     const attrs: Record<string, string> = Object.fromEntries(
         (u.Attributes ?? []).map((a) => [a.Name!, a.Value ?? ''])
     );
@@ -60,6 +69,7 @@ function mapRow(u: UserType, pool: Pool, group: AdminGroup | null) {
         joined: u.UserCreateDate ? new Date(u.UserCreateDate).toISOString() : null,
         group,
         pool,
+        points,
     };
 }
 
@@ -89,7 +99,30 @@ async function usernamesInGroup(groupName: AdminGroup): Promise<Set<string>> {
     return set;
 }
 
-// AppSync's direct Lambda resolver event for a custom query/mutation.
+async function fetchPoints(usernames: string[]): Promise<Map<string, number>> {
+    const result = new Map<string, number>();
+    if (!MOBILE_USERPROFILE_TABLE || usernames.length === 0) return result;
+    for (let i = 0; i < usernames.length; i += 100) {
+        const chunk = usernames.slice(i, i + 100);
+        const res = await ddb.send(
+            new BatchGetCommand({
+                RequestItems: {
+                    [MOBILE_USERPROFILE_TABLE]: {
+                        Keys: chunk.map((id) => ({ id })),
+                        ProjectionExpression: 'id, points',
+                    },
+                },
+            })
+        );
+        (res.Responses?.[MOBILE_USERPROFILE_TABLE] ?? []).forEach((item) => {
+            if (typeof item.id === 'string') {
+                result.set(item.id, typeof item.points === 'number' ? item.points : 0);
+            }
+        });
+    }
+    return result;
+}
+
 type AdminEvent = {
     fieldName: string;
     arguments: Record<string, unknown>;
@@ -108,6 +141,9 @@ export const handler = async (event: AdminEvent) => {
                 usernamesInGroup('RewardsAdmin'),
                 MOBILE_USER_POOL_ID ? listAllUsers(MOBILE_USER_POOL_ID) : Promise.resolve([]),
             ]);
+            const points = await fetchPoints(
+                mobileUsers.map((u) => u.Username ?? '').filter(Boolean)
+            );
             const groupSets: [AdminGroup, Set<string>][] = [
                 ['SuperAdmin', superAdmins],
                 ['ContentAdmin', contentAdmins],
@@ -117,13 +153,15 @@ export const handler = async (event: AdminEvent) => {
                 groupSets.find(([, set]) => set.has(username))?.[0] ?? null;
 
             return [
-                ...webUsers.map((u) => mapRow(u, 'web', groupOf(u.Username ?? ''))),
-                ...mobileUsers.map((u) => mapRow(u, 'mobile', null)),
+                ...webUsers.map((u) => mapRow(u, 'web', groupOf(u.Username ?? ''), null)),
+                ...mobileUsers.map((u) => mapRow(u, 'mobile', null, points.get(u.Username ?? '') ?? 0)),
             ];
         }
 
         case 'adminSetUserGroup': {
-            // Admin groups only exist on the web portal's own pool.
+            if (!callerGroups(event).includes('SuperAdmin')) {
+                throw new Error('Only a Super Admin can change admin groups.');
+            }
             const username = event.arguments.username as string;
             const rawGroup = event.arguments.group as string | null | undefined;
             if (rawGroup != null && !isAdminGroup(rawGroup)) {
@@ -185,6 +223,48 @@ export const handler = async (event: AdminEvent) => {
             const targetPoolId = poolId(pool);
             await cognito.send(new AdminDeleteUserCommand({ UserPoolId: targetPoolId, Username: username }));
             return { success: true };
+        }
+
+        case 'adminAddPoints': {
+            if (!MOBILE_USERPROFILE_TABLE) {
+                throw new Error('Points storage is not configured.');
+            }
+            const username = event.arguments.username as string;
+            const amount = event.arguments.amount as number;
+            if (!Number.isInteger(amount) || amount === 0 || Math.abs(amount) > 100000) {
+                throw new Error('Amount must be a whole number between -100,000 and 100,000 (not zero).');
+            }
+            try {
+                const res = await ddb.send(
+                    new UpdateCommand({
+                        TableName: MOBILE_USERPROFILE_TABLE,
+                        Key: { id: username },
+                        UpdateExpression: 'SET points = if_not_exists(points, :zero) + :amt',
+                        ConditionExpression: 'attribute_exists(id)',
+                        ExpressionAttributeValues: { ':amt': amount, ':zero': 0 },
+                        ReturnValues: 'ALL_NEW',
+                    })
+                );
+                let newBalance = typeof res.Attributes?.points === 'number' ? res.Attributes.points : 0;
+                if (newBalance < 0) {
+                    const fix = await ddb.send(
+                        new UpdateCommand({
+                            TableName: MOBILE_USERPROFILE_TABLE,
+                            Key: { id: username },
+                            UpdateExpression: 'SET points = :zero',
+                            ExpressionAttributeValues: { ':zero': 0 },
+                            ReturnValues: 'ALL_NEW',
+                        })
+                    );
+                    newBalance = typeof fix.Attributes?.points === 'number' ? fix.Attributes.points : 0;
+                }
+                return { success: true, newBalance };
+            } catch (err) {
+                if (err instanceof Error && err.name === 'ConditionalCheckFailedException') {
+                    throw new Error('This student has no app profile yet, so points cannot be adjusted.');
+                }
+                throw err;
+            }
         }
 
         default:

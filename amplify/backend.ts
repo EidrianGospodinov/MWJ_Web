@@ -18,20 +18,15 @@ const backend = defineBackend({
   rewardClaimNotifierFn,
 });
 
-// The student mobile app (LearningReactNative) is a separate Amplify project
-// with its own Cognito pool, in the same account/region. There's no CDK
-// cross-stack reference for it, so it's addressed by ARN — this lets the
-// portal list/suspend/delete those student accounts alongside its own.
 const MOBILE_USER_POOL_ID = 'eu-west-2_1IwFesGiC';
 const MOBILE_USER_POOL_ARN = `arn:aws:cognito-idp:eu-west-2:207763041295:userpool/${MOBILE_USER_POOL_ID}`;
+const MOBILE_USERPROFILE_TABLE = 'UserProfile-5jhqsrle3negtogqfc3wuessqy-NONE';
+const MOBILE_USERPROFILE_TABLE_ARN = `arn:aws:dynamodb:eu-west-2:207763041295:table/${MOBILE_USERPROFILE_TABLE}`;
 
-// The admin-users function is the only thing allowed to call Cognito admin
-// APIs — it's invoked exclusively via SuperAdmin-gated GraphQL operations
-// (see amplify/data/resource.ts), so no authenticated-user IAM role needs
-// these permissions directly.
 const adminUsersLambda = backend.adminUsersFn.resources.lambda as lambda.Function;
 adminUsersLambda.addEnvironment('ADMIN_USER_POOL_ID', backend.auth.resources.userPool.userPoolId);
 adminUsersLambda.addEnvironment('MOBILE_USER_POOL_ID', MOBILE_USER_POOL_ID);
+adminUsersLambda.addEnvironment('MOBILE_USERPROFILE_TABLE', MOBILE_USERPROFILE_TABLE);
 adminUsersLambda.addToRolePolicy(
   new PolicyStatement({
     actions: [
@@ -43,7 +38,6 @@ adminUsersLambda.addToRolePolicy(
     resources: [backend.auth.resources.userPool.userPoolArn, MOBILE_USER_POOL_ARN],
   })
 );
-// Admin-group management only applies to this portal's own pool.
 adminUsersLambda.addToRolePolicy(
   new PolicyStatement({
     actions: [
@@ -53,6 +47,12 @@ adminUsersLambda.addToRolePolicy(
       'cognito-idp:AdminRemoveUserFromGroup',
     ],
     resources: [backend.auth.resources.userPool.userPoolArn],
+  })
+);
+adminUsersLambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:GetItem', 'dynamodb:BatchGetItem', 'dynamodb:UpdateItem'],
+    resources: [MOBILE_USERPROFILE_TABLE_ARN],
   })
 );
 

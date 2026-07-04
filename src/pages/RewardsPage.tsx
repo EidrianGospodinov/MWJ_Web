@@ -3,6 +3,7 @@ import {getCurrentUser} from 'aws-amplify/auth';
 import {client} from '../client';
 import type {Schema} from '../../amplify/data/resource';
 import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader';
+import {friendlyError} from '../utils/errors';
 import './ContentManagerPage.css';
 
 type RewardType = 'Digital' | 'Physical';
@@ -158,7 +159,7 @@ export default function RewardsPage() {
             await fetchRewards();
         } catch (err) {
             console.error('Save failed', err);
-            alert('Save failed. Please try again.');
+            alert(friendlyError(err, 'Saving the reward failed. Please try again.'));
         }
     };
 

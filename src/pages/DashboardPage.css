@@ -1,0 +1,189 @@
+.db-page {
+    padding: 30px;
+    flex: 1;
+    background-color: #f3f4f6;
+    overflow-y: auto;
+}
+
+.db-heading {
+    margin: 0 0 20px;
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: #222;
+}
+
+.db-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.db-card {
+    background: #fff;
+    border: 1px solid #e2e2e2;
+    border-radius: 10px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.db-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #222;
+}
+
+.db-card__desc {
+    margin: -8px 0 0;
+    font-size: 0.85rem;
+    color: #777;
+}
+
+.db-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.db-toggle-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.db-toggle-state {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #888;
+}
+
+.db-toggle-state--on {
+    color: #b45309;
+}
+
+.db-switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 13px;
+    background: #d1d5db;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    padding: 0;
+}
+
+.db-switch--on {
+    background: #4a3b8c;
+}
+
+.db-switch__thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.db-switch--on .db-switch__thumb {
+    transform: translateX(22px);
+}
+
+.db-health-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.db-health-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 2px;
+    border-bottom: 1px solid #efefef;
+}
+
+.db-health-item:last-child {
+    border-bottom: none;
+}
+
+.db-health-name {
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.db-health-status {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #16a34a;
+}
+
+.db-health-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
+.db-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.db-field-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #555;
+}
+
+.db-field-row {
+    display: flex;
+    gap: 12px;
+}
+
+.db-field-row .db-field-group {
+    flex: 1;
+}
+
+.db-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #222;
+    background: #fff;
+}
+
+.db-input:focus {
+    outline: none;
+    border-color: #4a3b8c;
+    box-shadow: 0 0 0 3px rgba(74, 59, 140, 0.15);
+}
+
+.db-section-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #999;
+    margin: 4px 0 0;
+}

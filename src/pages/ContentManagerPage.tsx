@@ -6,6 +6,7 @@ import type {Block} from '../types/Blocks';
 import BlockItem from '../components/BlockItem/BlockItem';
 import BlockPreview from '../components/BlockPreview/BlockPreview';
 import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader';
+import {friendlyError} from '../utils/errors';
 import './ContentManagerPage.css';
 
 type BlockType = Block['type'];
@@ -117,7 +118,7 @@ export default function ContentManagerPage() {
             await fetchContent();
         } catch (err) {
             console.error('Save failed', err);
-            alert('Save failed. Please try again.');
+            alert(friendlyError(err, 'Saving the module failed. Please try again.'));
         }
     };
     const duplicateContent = async (
@@ -162,7 +163,7 @@ export default function ContentManagerPage() {
             await fetchContent();
         } catch (err) {
             console.error('Duplicate failed', err);
-            alert('Failed to duplicate content.');
+            alert(friendlyError(err, 'Duplicating the module failed. Please try again.'));
         }
     };
 
@@ -225,7 +226,7 @@ export default function ContentManagerPage() {
             await fetchContent();
         } catch (err) {
             console.error('Reorder failed', err);
-            alert('Failed to reorder modules.');
+            alert(friendlyError(err, 'Reordering the modules failed. Please try again.'));
         }
     };
 

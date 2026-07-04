@@ -14,8 +14,6 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.groups(["SuperAdmin", "ContentAdmin"]),
-      // Read-only API key so the student mobile app can list/display published
-      // modules without sharing this app's Cognito user pool.
       allow.publicApiKey().to(["read"]),
     ]),
 
@@ -34,7 +32,10 @@ const schema = a.schema({
       notifyEmails: a.string().array(),
       codes: a.hasMany("RewardCode", "rewardId"),
     })
-    .authorization((allow) => [allow.groups(["SuperAdmin", "RewardsAdmin"])]),
+    .authorization((allow) => [
+      allow.groups(["SuperAdmin", "RewardsAdmin"]),
+      allow.publicApiKey().to(["read"]),
+    ]),
 
   RewardCode: a
     .model({
@@ -54,7 +55,10 @@ const schema = a.schema({
       pointsCost: a.integer().required(),
       redeemedAt: a.datetime().required(),
     })
-    .authorization((allow) => [allow.groups(["SuperAdmin", "RewardsAdmin"])]),
+    .authorization((allow) => [
+      allow.groups(["SuperAdmin", "RewardsAdmin"]),
+      allow.publicApiKey().to(["read", "create"]),
+    ]),
 
   AdminUserRow: a.customType({
     username: a.string().required(),
@@ -64,14 +68,14 @@ const schema = a.schema({
     status: a.string(),
     joined: a.string(),
     group: a.string(),
-    // 'web' = this portal's own Cognito pool, 'mobile' = the student app's pool.
     pool: a.string().required(),
+    points: a.integer(),
   }),
 
   adminListUsers: a
     .query()
     .returns(a.ref("AdminUserRow").array())
-    .authorization((allow) => [allow.groups(["SuperAdmin"])])
+    .authorization((allow) => [allow.groups(["SuperAdmin", "RewardsAdmin"])])
     .handler(a.handler.function(adminUsersFn)),
 
   adminSetUserGroup: a
@@ -93,6 +97,13 @@ const schema = a.schema({
     .arguments({ username: a.string().required(), pool: a.string().required() })
     .returns(a.json())
     .authorization((allow) => [allow.groups(["SuperAdmin"])])
+    .handler(a.handler.function(adminUsersFn)),
+
+  adminAddPoints: a
+    .mutation()
+    .arguments({ username: a.string().required(), amount: a.integer().required() })
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["SuperAdmin", "RewardsAdmin"])])
     .handler(a.handler.function(adminUsersFn)),
 });
 
