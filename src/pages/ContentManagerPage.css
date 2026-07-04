@@ -503,6 +503,22 @@
     border-bottom: none;
 }
 
+.rh-row--editing td {
+    background: #eef0ff;
+}
+
+.rh-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rh-cell--title {
+    font-weight: 500;
+    color: #222;
+}
+
 .rh-table tbody tr:hover {
     background: #f7f7fb;
 }

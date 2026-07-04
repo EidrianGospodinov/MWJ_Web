@@ -3,6 +3,8 @@ import {getCurrentUser} from 'aws-amplify/auth';
 import {client} from '../client';
 import type {Schema} from '../../amplify/data/resource';
 import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader';
+import Pagination from '../components/Pagination/Pagination';
+import {usePagination} from '../components/Pagination/usePagination';
 import {friendlyError} from '../utils/errors';
 import './ContentManagerPage.css';
 
@@ -231,6 +233,9 @@ export default function RewardsPage() {
         }
         return item.isInfinite ? 'Infinite stock' : `${item.inventoryCount ?? 0} in stock`;
     };
+
+    const redemptionsPag = usePagination(redemptions);
+    const rewardsPag = usePagination(savedRewards);
 
     return (
         <section className="content-area cm-page">
@@ -476,26 +481,38 @@ export default function RewardsPage() {
                 {redemptions.length === 0 ? (
                     <p className="cm-empty-state">No redemptions yet.</p>
                 ) : (
-                    <table className="rh-table">
-                        <thead>
-                            <tr>
-                                <th>Reward</th>
-                                <th>Student Email</th>
-                                <th>Points Spent</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {redemptions.map((r) => (
-                                <tr key={r.id}>
-                                    <td>{r.rewardTitle}</td>
-                                    <td>{r.userEmail}</td>
-                                    <td>{r.pointsCost} pts</td>
-                                    <td>{new Date(r.redeemedAt).toLocaleString()}</td>
+                    <>
+                        <table className="rh-table">
+                            <thead>
+                                <tr>
+                                    <th>Reward</th>
+                                    <th>Student Email</th>
+                                    <th>Points Spent</th>
+                                    <th>Date</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {redemptionsPag.pageItems.map((r) => (
+                                    <tr key={r.id}>
+                                        <td>{r.rewardTitle}</td>
+                                        <td>{r.userEmail}</td>
+                                        <td>{r.pointsCost} pts</td>
+                                        <td>{new Date(r.redeemedAt).toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <Pagination
+                            page={redemptionsPag.page}
+                            pageCount={redemptionsPag.pageCount}
+                            rowsPerPage={redemptionsPag.rowsPerPage}
+                            total={redemptionsPag.total}
+                            start={redemptionsPag.start}
+                            pageSize={redemptionsPag.pageItems.length}
+                            onPageChange={redemptionsPag.setPage}
+                            onRowsPerPageChange={redemptionsPag.changeRowsPerPage}
+                        />
+                    </>
                 )}
             </div>
 
@@ -504,41 +521,67 @@ export default function RewardsPage() {
                 {savedRewards.length === 0 ? (
                     <p className="cm-empty-state">No saved rewards yet.</p>
                 ) : (
-                    <div className="cm-existing__list">
-                        {savedRewards.map((item) => (
-                            <div key={item.id}
-                                 className={`cm-existing__row${editingId === item.id ? ' cm-existing__row--editing' : ''}`}>
-                                <div className="cm-existing__info">
-                                    <span className="cm-existing__title">{item.title}</span>
-                                    <span className="cm-existing__meta">
-                                        {item.type ?? '—'}
-                                        {' · '}
-                                        {item.pointsCost == null ? 0 : item.pointsCost} pts
-                                        {' · '}
-                                        {stockLabel(item)}
-                                        {item.oncePerUser ? ' · One per user' : ''}
-                                        {item.notifyEmails?.length
-                                            ? ` · ${item.notifyEmails.length} notified on claim`
-                                            : ''}
-                                    </span>
-                                </div>
-                                <div className="cm-existing__controls">
-                                    <button
-                                        className="cm-existing__edit"
-                                        onClick={() => startEdit(item)}
+                    <>
+                        <table className="rh-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Points</th>
+                                    <th>Stock</th>
+                                    <th>Options</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rewardsPag.pageItems.map((item) => (
+                                    <tr
+                                        key={item.id}
+                                        className={editingId === item.id ? 'rh-row--editing' : ''}
                                     >
-                                        Edit
-                                    </button>
-                                    <button
-                                        className="cm-existing__delete"
-                                        onClick={() => deleteReward(item.id)}
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                                        <td className="rh-cell--title">{item.title}</td>
+                                        <td>{item.type ?? '—'}</td>
+                                        <td>{item.pointsCost == null ? 0 : item.pointsCost} pts</td>
+                                        <td>{stockLabel(item)}</td>
+                                        <td>
+                                            {[
+                                                item.oncePerUser ? 'One per user' : null,
+                                                item.notifyEmails?.length
+                                                    ? `${item.notifyEmails.length} notified on claim`
+                                                    : null,
+                                            ].filter(Boolean).join(' · ') || '—'}
+                                        </td>
+                                        <td>
+                                            <div className="rh-actions">
+                                                <button
+                                                    className="cm-existing__edit"
+                                                    onClick={() => startEdit(item)}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="cm-existing__delete"
+                                                    onClick={() => deleteReward(item.id)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <Pagination
+                            page={rewardsPag.page}
+                            pageCount={rewardsPag.pageCount}
+                            rowsPerPage={rewardsPag.rowsPerPage}
+                            total={rewardsPag.total}
+                            start={rewardsPag.start}
+                            pageSize={rewardsPag.pageItems.length}
+                            onPageChange={rewardsPag.setPage}
+                            onRowsPerPageChange={rewardsPag.changeRowsPerPage}
+                        />
+                    </>
                 )}
             </div>
         </section>

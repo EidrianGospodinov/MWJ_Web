@@ -6,6 +6,8 @@ import type {Block} from '../types/Blocks';
 import BlockItem from '../components/BlockItem/BlockItem';
 import BlockPreview from '../components/BlockPreview/BlockPreview';
 import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader';
+import Pagination from '../components/Pagination/Pagination';
+import {usePagination} from '../components/Pagination/usePagination';
 import {friendlyError} from '../utils/errors';
 import './ContentManagerPage.css';
 
@@ -230,6 +232,8 @@ export default function ContentManagerPage() {
         }
     };
 
+    const contentPag = usePagination(sortedContent);
+
     React.useEffect(() => {
         fetchContent();
     }, []);
@@ -250,7 +254,6 @@ export default function ContentManagerPage() {
 
             <div className="cm-body">
 
-                {/* ── Left Column ─────────────────────────── */}
                 <aside className="cm-left">
                     <div className="cm-card">
                         <label className="cm-section-label" htmlFor="module-title">
@@ -264,16 +267,8 @@ export default function ContentManagerPage() {
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                         />
-                    </div>
-
-                    <div className="cm-card">
-                        <span className="cm-section-label">Module Thumbnail</span>
-                        <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
-                    </div>
-
-                    <div className="cm-card">
-                        <label className="cm-toggle">
-                            <span className="cm-section-label">Recommend on Homepage</span>
+                        <label className="cm-toggle cm-toggle--sm">
+                            <span className="cm-toggle__text">Recommend on homepage</span>
                             <input
                                 type="checkbox"
                                 className="cm-toggle__input"
@@ -284,6 +279,11 @@ export default function ContentManagerPage() {
                                 <span className="cm-toggle__thumb"/>
                             </span>
                         </label>
+                    </div>
+
+                    <div className="cm-card">
+                        <span className="cm-section-label">Module Thumbnail</span>
+                        <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
                     </div>
 
                     <div className="cm-card">
@@ -390,73 +390,104 @@ export default function ContentManagerPage() {
                 {savedContent.length === 0 ? (
                     <p className="cm-empty-state">No saved content yet.</p>
                 ) : (
-                    <div className="cm-existing__list">
-                        {sortedContent.map((item, index) => (
-                            <div key={item.id}
-                                 className={`cm-existing__row${editingId === item.id ? ' cm-existing__row--editing' : ''}`}>
-                                <div className="cm-existing__order">
-                                    <button
-                                        className="cm-existing__move"
-                                        onClick={() => moveModule(index, -1)}
-                                        disabled={index === 0}
-                                        aria-label="Move up"
-                                    >
-                                        ▲
-                                    </button>
-                                    <button
-                                        className="cm-existing__move"
-                                        onClick={() => moveModule(index, 1)}
-                                        disabled={index === sortedContent.length - 1}
-                                        aria-label="Move down"
-                                    >
-                                        ▼
-                                    </button>
-                                </div>
-                                <div className="cm-existing__info">
-                                    <span className="cm-existing__title">{item.title}</span>
-                                    <span className="cm-existing__meta">
-                                        {item.createdAt
-                                            ? new Date(item.createdAt).toLocaleString(undefined, {
-                                                dateStyle: 'medium',
-                                                timeStyle: 'short'
-                                            })
-                                            : '—'}
-                                        {' · '}
-                                        {item.createdBy ?? 'N/A'}
-                                    </span>
-                                </div>
-                                <div className="cm-existing__controls">
-                                    <select
-                                        className={`cm-vis-select cm-vis-select--${(item.visibility ?? 'Public').toLowerCase()}`}
-                                        value={item.visibility ?? 'Public'}
-                                        onChange={(e) => updateVisibility(item.id, e.target.value)}
-                                    >
-                                        <option value="Public">Public</option>
-                                        <option value="Private">Private</option>
-                                    </select>
-                                    <button
-                                        className="cm-existing__edit"
-                                        onClick={() => startEdit(item)}
-                                    >
-                                        Edit
-                                    </button>
-                                    <button
-                                        className="cm-existing__duplicate"
-                                        onClick={() => duplicateContent(item)}
-                                    >
-                                        Duplicate
-                                    </button>
-                                    <button
-                                        className="cm-existing__delete"
-                                        onClick={() => deleteContent(item.id)}
-                                    >
-
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    <>
+                        <table className="rh-table">
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Title</th>
+                                    <th>Created</th>
+                                    <th>Author</th>
+                                    <th>Visibility</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {contentPag.pageItems.map((item, localIdx) => {
+                                    const index = contentPag.start + localIdx;
+                                    return (
+                                        <tr
+                                            key={item.id}
+                                            className={editingId === item.id ? 'rh-row--editing' : ''}
+                                        >
+                                            <td>
+                                                <div className="cm-existing__order">
+                                                    <button
+                                                        className="cm-existing__move"
+                                                        onClick={() => moveModule(index, -1)}
+                                                        disabled={index === 0}
+                                                        aria-label="Move up"
+                                                    >
+                                                        ▲
+                                                    </button>
+                                                    <button
+                                                        className="cm-existing__move"
+                                                        onClick={() => moveModule(index, 1)}
+                                                        disabled={index === sortedContent.length - 1}
+                                                        aria-label="Move down"
+                                                    >
+                                                        ▼
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td className="rh-cell--title">{item.title}</td>
+                                            <td>
+                                                {item.createdAt
+                                                    ? new Date(item.createdAt).toLocaleString(undefined, {
+                                                        dateStyle: 'medium',
+                                                        timeStyle: 'short'
+                                                    })
+                                                    : '—'}
+                                            </td>
+                                            <td>{item.createdBy ?? 'N/A'}</td>
+                                            <td>
+                                                <select
+                                                    className={`cm-vis-select cm-vis-select--${(item.visibility ?? 'Public').toLowerCase()}`}
+                                                    value={item.visibility ?? 'Public'}
+                                                    onChange={(e) => updateVisibility(item.id, e.target.value)}
+                                                >
+                                                    <option value="Public">Public</option>
+                                                    <option value="Private">Private</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <div className="rh-actions">
+                                                    <button
+                                                        className="cm-existing__edit"
+                                                        onClick={() => startEdit(item)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        className="cm-existing__duplicate"
+                                                        onClick={() => duplicateContent(item)}
+                                                    >
+                                                        Duplicate
+                                                    </button>
+                                                    <button
+                                                        className="cm-existing__delete"
+                                                        onClick={() => deleteContent(item.id)}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        <Pagination
+                            page={contentPag.page}
+                            pageCount={contentPag.pageCount}
+                            rowsPerPage={contentPag.rowsPerPage}
+                            total={contentPag.total}
+                            start={contentPag.start}
+                            pageSize={contentPag.pageItems.length}
+                            onPageChange={contentPag.setPage}
+                            onRowsPerPageChange={contentPag.changeRowsPerPage}
+                        />
+                    </>
                 )}
             </div>
         </section>

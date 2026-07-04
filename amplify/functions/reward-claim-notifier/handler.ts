@@ -58,29 +58,41 @@ export const handler: DynamoDBStreamHandler = async (event) => {
         timeZone: 'Europe/London',
       });
 
-      await ses.send(
-        new SendEmailCommand({
-          FromEmailAddress: sender,
-          Destination: { ToAddresses: recipients },
-          Content: {
-            Simple: {
-              Subject: { Data: `Reward claimed: ${redemption.rewardTitle}` },
-              Body: {
-                Text: {
-                  Data:
-                    'A student has claimed a reward.\n\n' +
-                    `Student: ${redemption.userEmail}\n` +
-                    `Reward: ${redemption.rewardTitle}\n` +
-                    `Points spent: ${redemption.pointsCost}\n` +
-                    `Redeemed at: ${redeemedAtLabel}\n`,
-                },
-              },
+      const content = {
+        Simple: {
+          Subject: { Data: `Reward claimed: ${redemption.rewardTitle}` },
+          Body: {
+            Text: {
+              Data:
+                'A student has claimed a reward.\n\n' +
+                `Student: ${redemption.userEmail}\n` +
+                `Reward: ${redemption.rewardTitle}\n` +
+                `Points spent: ${redemption.pointsCost}\n` +
+                `Redeemed at: ${redeemedAtLabel}\n`,
             },
           },
-        })
+        },
+      };
+
+      const results = await Promise.allSettled(
+        recipients.map((recipient) =>
+          ses.send(
+            new SendEmailCommand({
+              FromEmailAddress: sender,
+              Destination: { ToAddresses: [recipient] },
+              Content: content,
+            })
+          )
+        )
       );
+      results.forEach((result, i) => {
+        if (result.status === 'rejected') {
+          console.error(`SES send to ${recipients[i]} failed:`, result.reason);
+        }
+      });
+      const sent = results.filter((r) => r.status === 'fulfilled').length;
       console.log(
-        `Notified ${recipients.length} recipient(s) for reward ${redemption.rewardId} (${redemption.rewardTitle}).`
+        `Notified ${sent}/${recipients.length} recipient(s) for reward ${redemption.rewardId} (${redemption.rewardTitle}).`
       );
     } catch (err) {
       console.error('Failed to process redemption record', record.eventID, err);
