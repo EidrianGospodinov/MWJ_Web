@@ -302,6 +302,56 @@ export default function RewardsPage() {
                     </div>
 
                     <div className="cm-card">
+                        <label className="cm-section-label" htmlFor="reward-notify-emails">
+                            Claim Notification Emails
+                        </label>
+                        {adminLoadFailed ? (
+                            <span className="cm-hint">
+                                Could not load the admin accounts. Refresh the page to try again.
+                            </span>
+                        ) : adminOptions.length === 0 ? (
+                            <span className="cm-hint">
+                                No Super Admin or Rewards Admin accounts were found.
+                            </span>
+                        ) : (
+                            <select
+                                id="reward-notify-emails"
+                                className="cm-title-input"
+                                value=""
+                                onChange={(e) => e.target.value && toggleNotifyEmail(e.target.value)}
+                            >
+                                <option value="" disabled>Select an admin to notify…</option>
+                                {adminOptions
+                                    .filter((admin) => !notifyEmails.includes(admin.email))
+                                    .map((admin) => (
+                                        <option key={admin.email} value={admin.email}>
+                                            {admin.email} — {admin.group === 'SuperAdmin' ? 'Super Admin' : 'Rewards Admin'}
+                                        </option>
+                                    ))}
+                            </select>
+                        )}
+                        {notifyEmails.length > 0 && (
+                            <div className="cm-email-list">
+                                {notifyEmails.map((email) => (
+                                    <div key={email} className="cm-existing__row">
+                                        <span className="cm-existing__title">{email}</span>
+                                        <button
+                                            type="button"
+                                            className="cm-existing__delete"
+                                            onClick={() => toggleNotifyEmail(email)}
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <span className="cm-hint">
+                            Selected admins receive an email whenever a student claims this reward.
+                        </span>
+                    </div>
+
+                    <div className="cm-card">
                         <span className="cm-section-label">Reward Thumbnail</span>
                         <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
                     </div>
@@ -371,56 +421,6 @@ export default function RewardsPage() {
                             value={pointsCost}
                             onChange={(e) => setPointsCost(e.target.value)}
                         />
-                    </div>
-
-                    <div className="cm-card">
-                        <span className="cm-section-label">Claim Notification Emails</span>
-                        {adminLoadFailed ? (
-                            <span className="cm-hint">
-                                Could not load the admin accounts. Refresh the page to try again.
-                            </span>
-                        ) : adminOptions.length === 0 ? (
-                            <span className="cm-hint">
-                                No Super Admin or Rewards Admin accounts were found.
-                            </span>
-                        ) : (
-                            <div className="cm-admin-list">
-                                {adminOptions.map((admin) => (
-                                    <label key={admin.email} className="cm-admin-option">
-                                        <input
-                                            type="checkbox"
-                                            checked={notifyEmails.includes(admin.email)}
-                                            onChange={() => toggleNotifyEmail(admin.email)}
-                                        />
-                                        <span className="cm-admin-option__email">{admin.email}</span>
-                                        <span className="cm-admin-option__role">
-                                            {admin.group === 'SuperAdmin' ? 'Super Admin' : 'Rewards Admin'}
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
-                        )}
-                        {notifyEmails.filter((e) => !adminOptions.some((a) => a.email === e)).length > 0 && (
-                            <div className="cm-email-list">
-                                {notifyEmails
-                                    .filter((e) => !adminOptions.some((a) => a.email === e))
-                                    .map((email) => (
-                                        <div key={email} className="cm-existing__row">
-                                            <span className="cm-existing__title">{email}</span>
-                                            <button
-                                                type="button"
-                                                className="cm-existing__delete"
-                                                onClick={() => toggleNotifyEmail(email)}
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    ))}
-                            </div>
-                        )}
-                        <span className="cm-hint">
-                            Selected admins receive an email whenever a student claims this reward.
-                        </span>
                     </div>
 
                     {type === 'Digital' ? (
