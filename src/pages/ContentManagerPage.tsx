@@ -185,6 +185,7 @@ export default function ContentManagerPage() {
         setBlocks(JSON.parse(String(item.blocks ?? '[]')));
         setEditingId(item.id);
         setActiveId(null);
+        document.querySelector('.content-area')?.scrollTo({top: 0, behavior: 'smooth'});
     };
 
     const fetchContent = async () => {
