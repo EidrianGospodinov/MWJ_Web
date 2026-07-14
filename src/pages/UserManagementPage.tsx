@@ -6,7 +6,7 @@ import { useAdminGroups } from '../hooks/useAdminGroups';
 import { friendlyError } from '../utils/errors';
 import './UserManagementPage.css';
 
-type TabKey = 'users' | 'admins';
+type TabKey = 'app' | 'admin';
 
 type Pool = 'web' | 'mobile';
 
@@ -43,8 +43,8 @@ const GROUP_OPTIONS: { value: AdminGroup | 'None'; label: string }[] = [
 const STATUS_OPTIONS = ['Active', 'Suspended'];
 
 const TABS: { key: TabKey; label: string }[] = [
-    { key: 'users', label: 'Users' },
-    { key: 'admins', label: 'Admins' },
+    { key: 'app', label: 'App Users' },
+    { key: 'admin', label: 'Admin Users' },
 ];
 
 type PointsMode = 'add' | 'deduct';
@@ -53,7 +53,7 @@ export default function UserManagementPage() {
     const groups = useAdminGroups();
     const isSuperAdmin = (groups ?? []).includes('SuperAdmin');
 
-    const [tab, setTab] = React.useState<TabKey>('users');
+    const [tab, setTab] = React.useState<TabKey>('app');
     const [rows, setRows] = React.useState<Row[]>([]);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -96,7 +96,7 @@ export default function UserManagementPage() {
                     pool: (r.pool as Pool) ?? 'web',
                     points: r.points ?? null,
                 }));
-            setRows(all.filter((r) => (tab === 'users' ? r.group === null : r.group !== null)));
+            setRows(all.filter((r) => (tab === 'app' ? r.pool === 'mobile' : r.pool === 'web')));
         } catch (e: unknown) {
             setError(friendlyError(e, 'Could not load the user list. Please try again.'));
         } finally {
