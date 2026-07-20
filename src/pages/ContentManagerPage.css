@@ -503,6 +503,19 @@
     border-bottom: none;
 }
 
+.cm-field-row {
+    display: flex;
+    gap: 12px;
+}
+
+.cm-field-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
 .rh-row--editing td {
     background: #eef0ff;
 }

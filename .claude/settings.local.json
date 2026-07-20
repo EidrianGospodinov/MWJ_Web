@@ -64,7 +64,12 @@
       "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 30)",
       "PowerShell(Get-CimInstance *)",
       "PowerShell(Get-Item *)",
-      "PowerShell(aws s3 rm *)"
+      "PowerShell(aws s3 rm *)",
+      "Bash(rustc --version)",
+      "Bash(cargo --version)",
+      "Bash(npm --version)",
+      "Bash(cargo tauri *)",
+      "Bash(npx --no-install tauri --version)"
     ]
   }
 }

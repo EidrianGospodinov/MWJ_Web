@@ -54,6 +54,7 @@ export default function UserManagementPage() {
     const isSuperAdmin = (groups ?? []).includes('SuperAdmin');
 
     const [tab, setTab] = React.useState<TabKey>('app');
+    const [search, setSearch] = React.useState('');
     const [rows, setRows] = React.useState<Row[]>([]);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -188,6 +189,15 @@ export default function UserManagementPage() {
         }
     };
 
+    const visibleRows = React.useMemo(() => {
+        const q = search.trim().toLowerCase();
+        if (!q) return rows;
+        return rows.filter((r) =>
+            [r.fullName, r.email, r.status, r.group ? GROUP_LABELS[r.group] : '']
+                .some((v) => v.toLowerCase().includes(q))
+        );
+    }, [rows, search]);
+
     const handleDelete = async () => {
         if (!confirmTarget) return;
         setWorking(true);
@@ -218,11 +228,28 @@ export default function UserManagementPage() {
                     <button
                         key={key}
                         className={`um-tab${tab === key ? ' um-tab--active' : ''}`}
-                        onClick={() => setTab(key)}
+                        onClick={() => { setTab(key); setSearch(''); }}
                     >
                         {label}
                     </button>
                 ))}
+            </div>
+
+            <div className="um-toolbar">
+                <input
+                    className="um-search"
+                    type="search"
+                    placeholder={tab === 'app'
+                        ? 'Search app users by name, email or status…'
+                        : 'Search admins by name, email, group or status…'}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+                {search && (
+                    <span className="um-search-count">
+                        {visibleRows.length} of {rows.length} shown
+                    </span>
+                )}
             </div>
 
             {loading ? (
@@ -242,12 +269,14 @@ export default function UserManagementPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.length === 0 ? (
+                        {visibleRows.length === 0 ? (
                             <tr>
-                                <td colSpan={8} className="um-empty">No users found.</td>
+                                <td colSpan={8} className="um-empty">
+                                    {rows.length === 0 ? 'No users found.' : 'No users match your search.'}
+                                </td>
                             </tr>
                         ) : (
-                            rows.map(row => (
+                            visibleRows.map(row => (
                                 <tr key={`${row.pool}:${row.username}`}>
                                     <td>{row.fullName}</td>
                                     <td>{row.email}</td>
