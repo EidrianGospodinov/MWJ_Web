@@ -1,19 +1,14 @@
 import React from 'react';
+import {getCurrentUser} from 'aws-amplify/auth';
+import {client} from '../client';
+import type {Schema} from '../../amplify/data/resource';
 import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader';
 import Pagination from '../components/Pagination/Pagination';
 import {usePagination} from '../components/Pagination/usePagination';
+import {friendlyError} from '../utils/errors';
 import './ContentManagerPage.css';
 
-type Society = {
-    id: string;
-    name: string;
-    description: string;
-    committeeMembers: string;
-    website: string;
-    instagram: string;
-    whatsapp: string;
-    logoKey: string | null;
-};
+type SocietyRecord = Schema['Society']['type'];
 
 export default function SocietiesPage() {
     const [name, setName] = React.useState('');
@@ -23,10 +18,39 @@ export default function SocietiesPage() {
     const [instagram, setInstagram] = React.useState('');
     const [whatsapp, setWhatsapp] = React.useState('');
     const [logoKey, setLogoKey] = React.useState<string | null>(null);
-    const [societies, setSocieties] = React.useState<Society[]>([]);
+    const [societies, setSocieties] = React.useState<SocietyRecord[]>([]);
     const [editingId, setEditingId] = React.useState<string | null>(null);
+    const [loadError, setLoadError] = React.useState<string | null>(null);
+    const [saving, setSaving] = React.useState(false);
 
-    const societiesPag = usePagination(societies);
+    const sorted = React.useMemo(
+        () =>
+            [...societies].sort((a, b) => {
+                const ao = a.displayOrder ?? Number.MAX_SAFE_INTEGER;
+                const bo = b.displayOrder ?? Number.MAX_SAFE_INTEGER;
+                if (ao !== bo) return ao - bo;
+                return a.name.localeCompare(b.name);
+            }),
+        [societies]
+    );
+
+    const societiesPag = usePagination(sorted);
+
+    const fetchSocieties = async () => {
+        if (!client.models.Society) return;
+        try {
+            const {data, errors} = await client.models.Society.list();
+            if (errors?.length) throw new Error(errors[0].message);
+            setSocieties(data);
+            setLoadError(null);
+        } catch (err) {
+            setLoadError(friendlyError(err, 'Could not load the societies. Try refreshing.'));
+        }
+    };
+
+    React.useEffect(() => {
+        fetchSocieties();
+    }, []);
 
     const resetFields = () => {
         setName('');
@@ -39,49 +63,92 @@ export default function SocietiesPage() {
         setEditingId(null);
     };
 
-    const saveSociety = () => {
+    const saveSociety = async () => {
         if (!name.trim()) {
             alert('Please enter a society name before saving.');
             return;
         }
-        const entry: Society = {
-            id: editingId ?? crypto.randomUUID(),
-            name: name.trim(),
-            description,
-            committeeMembers,
-            website,
-            instagram,
-            whatsapp,
-            logoKey,
-        };
-        setSocieties((prev) =>
-            editingId ? prev.map((s) => (s.id === editingId ? entry : s)) : [...prev, entry]
-        );
-        resetFields();
+        if (!client.models.Society) {
+            alert('The Society model is not deployed yet.');
+            return;
+        }
+        setSaving(true);
+        try {
+            const payload = {
+                name: name.trim(),
+                description,
+                committeeMembers,
+                website,
+                instagram,
+                whatsapp,
+                logoKey,
+            };
+            if (editingId) {
+                const {errors} = await client.models.Society.update({id: editingId, ...payload});
+                if (errors?.length) throw new Error(errors[0].message);
+            } else {
+                const createdBy = await getCurrentUser()
+                    .then((u) => u.signInDetails?.loginId ?? u.username)
+                    .catch(() => undefined);
+                const {errors} = await client.models.Society.create({
+                    ...payload,
+                    createdBy,
+                    displayOrder: societies.length,
+                });
+                if (errors?.length) throw new Error(errors[0].message);
+            }
+            resetFields();
+            await fetchSocieties();
+        } catch (err) {
+            console.error('Save failed', err);
+            alert(friendlyError(err, 'Saving the society failed. Please try again.'));
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const startEdit = (society: Society) => {
+    const startEdit = (society: SocietyRecord) => {
         setName(society.name);
-        setDescription(society.description);
-        setCommitteeMembers(society.committeeMembers);
-        setWebsite(society.website);
-        setInstagram(society.instagram);
-        setWhatsapp(society.whatsapp);
-        setLogoKey(society.logoKey);
+        setDescription(society.description ?? '');
+        setCommitteeMembers(society.committeeMembers ?? '');
+        setWebsite(society.website ?? '');
+        setInstagram(society.instagram ?? '');
+        setWhatsapp(society.whatsapp ?? '');
+        setLogoKey(society.logoKey ?? null);
         setEditingId(society.id);
+        window.scrollTo({top: 0, behavior: 'smooth'});
     };
 
-    const deleteSociety = (id: string) => {
-        setSocieties((prev) => prev.filter((s) => s.id !== id));
-        if (editingId === id) resetFields();
+    const deleteSociety = async (id: string) => {
+        if (!client.models.Society) return;
+        try {
+            const {errors} = await client.models.Society.delete({id});
+            if (errors?.length) throw new Error(errors[0].message);
+            if (editingId === id) resetFields();
+            await fetchSocieties();
+        } catch (err) {
+            alert(friendlyError(err, 'Deleting the society failed. Please try again.'));
+        }
     };
+
+    const linkCount = (s: SocietyRecord) =>
+        [s.website, s.instagram, s.whatsapp].filter((v) => !!v && v.trim() !== '').length;
 
     return (
         <section className="content-area cm-page">
             <h1 className="cm-heading">Societies</h1>
-            <span className="cm-hint">
-                Draft preview — societies are not saved to the database yet. Entries below live only on this page.
-            </span>
+
+            {loadError && (
+                <div className="cm-load-error">
+                    {loadError}
+                    <button
+                        className="cm-load-error__retry"
+                        onClick={() => { setLoadError(null); fetchSocieties(); }}
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
 
             <div className="cm-body">
 
@@ -176,16 +243,21 @@ export default function SocietiesPage() {
             </div>
 
             <div className="cm-footer">
-                <button className="cm-action cm-action--cancel" onClick={resetFields}>
+                <button className="cm-action cm-action--cancel" onClick={resetFields} disabled={saving}>
                     Cancel
                 </button>
-                <button className="cm-action cm-action--submit" onClick={saveSociety}>
-                    {editingId ? 'Save Changes' : 'Add Society'}
+                <button className="cm-action cm-action--submit" onClick={saveSociety} disabled={saving}>
+                    {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Society'}
                 </button>
             </div>
 
             <div className="cm-existing">
-                <h2 className="cm-existing__heading">Existing Societies</h2>
+                <div className="cm-existing__header-row">
+                    <h2 className="cm-existing__heading">Existing Societies</h2>
+                    <button className="cm-refresh-btn" onClick={fetchSocieties}>
+                        Refresh
+                    </button>
+                </div>
                 {societies.length === 0 ? (
                     <p className="cm-empty-state">No societies yet — add the first one above.</p>
                 ) : (
@@ -194,10 +266,9 @@ export default function SocietiesPage() {
                             <thead>
                                 <tr>
                                     <th>Name</th>
+                                    <th>Description</th>
                                     <th>Committee</th>
-                                    <th>Website</th>
-                                    <th>Instagram</th>
-                                    <th>WhatsApp</th>
+                                    <th>Links</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -208,22 +279,13 @@ export default function SocietiesPage() {
                                         className={editingId === s.id ? 'rh-row--editing' : ''}
                                     >
                                         <td className="rh-cell--title">{s.name}</td>
-                                        <td>{s.committeeMembers || '—'}</td>
+                                        <td>{s.description ? s.description.slice(0, 60) : '—'}</td>
                                         <td>
-                                            {s.website ? (
-                                                <a href={s.website} target="_blank" rel="noreferrer">Link</a>
-                                            ) : '—'}
+                                            {s.committeeMembers
+                                                ? `${s.committeeMembers.split('\n').filter(Boolean).length} listed`
+                                                : '—'}
                                         </td>
-                                        <td>
-                                            {s.instagram ? (
-                                                <a href={s.instagram} target="_blank" rel="noreferrer">Link</a>
-                                            ) : '—'}
-                                        </td>
-                                        <td>
-                                            {s.whatsapp ? (
-                                                <a href={s.whatsapp} target="_blank" rel="noreferrer">Link</a>
-                                            ) : '—'}
-                                        </td>
+                                        <td>{linkCount(s) > 0 ? `${linkCount(s)} link(s)` : '—'}</td>
                                         <td>
                                             <div className="rh-actions">
                                                 <button

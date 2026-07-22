@@ -60,6 +60,37 @@ const schema = a.schema({
       allow.publicApiKey().to(["read", "create"]),
     ]),
 
+  Society: a
+    .model({
+      name: a.string().required(),
+      description: a.string(),
+      committeeMembers: a.string(),
+      website: a.string(),
+      instagram: a.string(),
+      whatsapp: a.string(),
+      logoKey: a.string(),
+      displayOrder: a.integer(),
+      createdBy: a.string(),
+    })
+    .authorization((allow) => [
+      allow.groups(["SuperAdmin", "ContentAdmin"]),
+      allow.publicApiKey().to(["read"]),
+    ]),
+
+  Resource: a
+    .model({
+      title: a.string().required(),
+      description: a.string(),
+      url: a.string().required(),
+      category: a.string(),
+      displayOrder: a.integer(),
+      createdBy: a.string(),
+    })
+    .authorization((allow) => [
+      allow.groups(["SuperAdmin", "ContentAdmin"]),
+      allow.publicApiKey().to(["read"]),
+    ]),
+
   AdminUserRow: a.customType({
     username: a.string().required(),
     email: a.string(),
