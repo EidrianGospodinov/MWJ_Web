@@ -6,6 +6,7 @@ import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader
 import Pagination from '../components/Pagination/Pagination';
 import {usePagination} from '../components/Pagination/usePagination';
 import {friendlyError} from '../utils/errors';
+import {logAudit} from '../utils/audit';
 import './ContentManagerPage.css';
 
 type RewardType = 'Digital' | 'Physical';
@@ -180,6 +181,12 @@ export default function RewardsPage() {
                 );
             }
 
+            logAudit(
+                'Rewards',
+                editingId ? 'updated' : 'created',
+                title,
+                newCodes.length > 0 ? `${newCodes.length} code(s) added` : undefined
+            );
             resetFields();
             await fetchRewards();
         } catch (err) {
@@ -213,7 +220,9 @@ export default function RewardsPage() {
                 codes.map((code) => client.models.RewardCode.delete({id: code.id}))
             );
         }
+        const item = savedRewards.find((r) => r.id === id);
         await client.models.Reward.delete({id});
+        logAudit('Rewards', 'deleted', item?.title ?? id);
         await fetchRewards();
     };
 

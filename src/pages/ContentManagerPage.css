@@ -503,6 +503,11 @@
     border-bottom: none;
 }
 
+.sl-section-select {
+    width: auto;
+    flex: 0 0 auto;
+}
+
 .cm-field-row {
     display: flex;
     gap: 12px;

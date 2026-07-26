@@ -91,6 +91,19 @@ const schema = a.schema({
       allow.publicApiKey().to(["read"]),
     ]),
 
+  AuditLog: a
+    .model({
+      section: a.string().required(),
+      action: a.string().required(),
+      itemName: a.string().required(),
+      detail: a.string(),
+      actor: a.string().required(),
+    })
+    .authorization((allow) => [
+      allow.groups(["SuperAdmin"]),
+      allow.groups(["ContentAdmin", "RewardsAdmin"]).to(["create"]),
+    ]),
+
   AdminUserRow: a.customType({
     username: a.string().required(),
     email: a.string(),

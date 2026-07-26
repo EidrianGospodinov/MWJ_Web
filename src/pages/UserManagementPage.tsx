@@ -4,6 +4,7 @@ import { client } from '../client';
 import type { AdminGroup } from '../hooks/useAdminGroups';
 import { useAdminGroups } from '../hooks/useAdminGroups';
 import { friendlyError } from '../utils/errors';
+import { logAudit } from '../utils/audit';
 import './UserManagementPage.css';
 
 type TabKey = 'app' | 'admin';
@@ -149,6 +150,12 @@ export default function UserManagementPage() {
                 amount: signed,
             });
             if (errors?.length) throw new Error(errors[0].message);
+            logAudit(
+                'Points',
+                pointsMode === 'add' ? 'points added' : 'points deducted',
+                pointsTarget.email || pointsTarget.username,
+                `${pointsMode === 'add' ? '+' : '-'}${parsedAmount} points`
+            );
             setPointsTarget(null);
             await fetchRows();
         } catch (e: unknown) {
@@ -170,6 +177,12 @@ export default function UserManagementPage() {
                     group: editGroup === 'None' ? null : editGroup,
                 });
                 if (errors?.length) throw new Error(errors[0].message);
+                logAudit(
+                    'User Management',
+                    'role changed',
+                    editTarget.email || editTarget.username,
+                    `${editTarget.group ?? 'None'} → ${editGroup}`
+                );
             }
             const wantEnabled = editStatus === 'Active';
             if (wantEnabled !== editTarget.enabled) {
@@ -179,6 +192,12 @@ export default function UserManagementPage() {
                     pool: editTarget.pool,
                 });
                 if (errors?.length) throw new Error(errors[0].message);
+                logAudit(
+                    'User Management',
+                    wantEnabled ? 'account re-activated' : 'account suspended',
+                    editTarget.email || editTarget.username,
+                    POOL_LABELS[editTarget.pool]
+                );
             }
             setEditTarget(null);
             await fetchRows();
@@ -208,6 +227,12 @@ export default function UserManagementPage() {
                 pool: confirmTarget.pool,
             });
             if (errors?.length) throw new Error(errors[0].message);
+            logAudit(
+                'User Management',
+                'account deleted',
+                confirmTarget.email || confirmTarget.username,
+                POOL_LABELS[confirmTarget.pool]
+            );
             setConfirmTarget(null);
             await fetchRows();
         } catch (e: unknown) {

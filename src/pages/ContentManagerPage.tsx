@@ -9,6 +9,7 @@ import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader
 import Pagination from '../components/Pagination/Pagination';
 import {usePagination} from '../components/Pagination/usePagination';
 import {friendlyError} from '../utils/errors';
+import {logAudit} from '../utils/audit';
 import './ContentManagerPage.css';
 
 type BlockType = Block['type'];
@@ -102,6 +103,7 @@ export default function ContentManagerPage() {
                     isRecommended,
                 });
                 console.log('updated', result);
+                logAudit('Content', 'updated', title);
             } else {
                 const createdBy = await getCurrentUser()
                     .then((u) => u.signInDetails?.loginId ?? u.username)
@@ -115,6 +117,7 @@ export default function ContentManagerPage() {
                     isRecommended,
                 });
                 console.log('saved', result);
+                logAudit('Content', 'created', title);
             }
             resetContentManagerFields();
             await fetchContent();
@@ -162,6 +165,7 @@ export default function ContentManagerPage() {
                 isRecommended: item.isRecommended,
             });
 
+            logAudit('Content', 'duplicated', duplicatedTitle, `from "${item.title}"`);
             await fetchContent();
         } catch (err) {
             console.error('Duplicate failed', err);
@@ -194,12 +198,16 @@ export default function ContentManagerPage() {
     };
 
     const deleteContent = async (id: string) => {
+        const item = savedContent.find((c) => c.id === id);
         await client.models.ContentManagement.delete({id});
+        logAudit('Content', 'deleted', item?.title ?? id);
         await fetchContent();
     };
 
     const updateVisibility = async (id: string, visibility: string) => {
+        const item = savedContent.find((c) => c.id === id);
         await client.models.ContentManagement.update({id, visibility});
+        logAudit('Content', 'visibility changed', item?.title ?? id, `→ ${visibility}`);
         await fetchContent();
     };
 
@@ -226,6 +234,7 @@ export default function ContentManagerPage() {
                 client.models.ContentManagement.update({id: current.id, displayOrder: neighbourOrder}),
                 client.models.ContentManagement.update({id: neighbour.id, displayOrder: currentOrder}),
             ]);
+            logAudit('Content', 'reordered', current.title, direction === -1 ? 'moved up' : 'moved down');
             await fetchContent();
         } catch (err) {
             console.error('Reorder failed', err);

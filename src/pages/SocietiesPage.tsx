@@ -6,6 +6,7 @@ import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader
 import Pagination from '../components/Pagination/Pagination';
 import {usePagination} from '../components/Pagination/usePagination';
 import {friendlyError} from '../utils/errors';
+import {logAudit} from '../utils/audit';
 import './ContentManagerPage.css';
 
 type SocietyRecord = Schema['Society']['type'];
@@ -97,6 +98,7 @@ export default function SocietiesPage() {
                 });
                 if (errors?.length) throw new Error(errors[0].message);
             }
+            logAudit('Societies', editingId ? 'updated' : 'created', name.trim());
             resetFields();
             await fetchSocieties();
         } catch (err) {
@@ -122,8 +124,10 @@ export default function SocietiesPage() {
     const deleteSociety = async (id: string) => {
         if (!client.models.Society) return;
         try {
+            const item = societies.find((s) => s.id === id);
             const {errors} = await client.models.Society.delete({id});
             if (errors?.length) throw new Error(errors[0].message);
+            logAudit('Societies', 'deleted', item?.name ?? id);
             if (editingId === id) resetFields();
             await fetchSocieties();
         } catch (err) {

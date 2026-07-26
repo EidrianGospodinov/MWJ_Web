@@ -5,6 +5,7 @@ import type {Schema} from '../../amplify/data/resource';
 import Pagination from '../components/Pagination/Pagination';
 import {usePagination} from '../components/Pagination/usePagination';
 import {friendlyError} from '../utils/errors';
+import {logAudit} from '../utils/audit';
 import './ContentManagerPage.css';
 
 type ResourceRecord = Schema['Resource']['type'];
@@ -104,6 +105,7 @@ export default function ResourcesPage() {
                 });
                 if (errors?.length) throw new Error(errors[0].message);
             }
+            logAudit('Resources', editingId ? 'updated' : 'created', title.trim());
             resetFields();
             await fetchResources();
         } catch (err) {
@@ -126,8 +128,10 @@ export default function ResourcesPage() {
     const deleteResource = async (id: string) => {
         if (!client.models.Resource) return;
         try {
+            const item = resources.find((r) => r.id === id);
             const {errors} = await client.models.Resource.delete({id});
             if (errors?.length) throw new Error(errors[0].message);
+            logAudit('Resources', 'deleted', item?.title ?? id);
             if (editingId === id) resetFields();
             await fetchResources();
         } catch (err) {
@@ -145,6 +149,7 @@ export default function ResourcesPage() {
                 client.models.Resource.update({id: current.id, displayOrder: neighbour.displayOrder ?? target}),
                 client.models.Resource.update({id: neighbour.id, displayOrder: current.displayOrder ?? index}),
             ]);
+            logAudit('Resources', 'reordered', current.title, direction === -1 ? 'moved up' : 'moved down');
             await fetchResources();
         } catch (err) {
             alert(friendlyError(err, 'Reordering the resources failed. Please try again.'));
