@@ -1,0 +1,247 @@
+.acc-page {
+    display: flex;
+    flex-direction: column;
+    padding: 32px 40px;
+    background: #f4f5f7;
+    gap: 20px;
+    min-height: calc(100vh - 64px);
+    box-sizing: border-box;
+}
+
+.acc-heading {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 0;
+}
+
+.acc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.acc-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.acc-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1a1a2e;
+}
+
+.acc-card__desc {
+    margin: -8px 0 0;
+    font-size: 0.85rem;
+    color: #777;
+    line-height: 1.5;
+}
+
+.acc-identity {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.acc-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #4a3b8c;
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+}
+
+.acc-identity__name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1a1a2e;
+}
+
+.acc-identity__email {
+    font-size: 0.88rem;
+    color: #777;
+    word-break: break-all;
+}
+
+.acc-badge {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #eef0ff;
+    color: #3b4acc;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.acc-badge--none {
+    background: #f1f1f1;
+    color: #888;
+}
+
+.acc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.acc-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #999;
+}
+
+.acc-input {
+    padding: 10px 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #222;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+.acc-input:focus {
+    border-color: #5b6af5;
+}
+
+.acc-input:disabled {
+    background: #f7f7f7;
+    color: #777;
+}
+
+.acc-readonly-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+}
+
+.acc-readonly-row:last-child {
+    border-bottom: none;
+}
+
+.acc-readonly-row__label {
+    color: #777;
+}
+
+.acc-readonly-row__value {
+    color: #222;
+    font-weight: 500;
+    text-align: right;
+    word-break: break-all;
+}
+
+.acc-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.acc-btn {
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: #f0f0f0;
+    color: #444;
+}
+
+.acc-btn:hover:not(:disabled) {
+    background: #e4e4e4;
+}
+
+.acc-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.acc-btn--primary {
+    background: #5b6af5;
+    color: #fff;
+}
+
+.acc-btn--primary:hover:not(:disabled) {
+    background: #4a58d8;
+}
+
+.acc-btn--danger {
+    background: #fff;
+    color: #b00;
+    border: 1.5px solid #f0c8c8;
+}
+
+.acc-btn--danger:hover:not(:disabled) {
+    background: #fff3f3;
+}
+
+.acc-message {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+}
+
+.acc-message--error {
+    background: #fff3f3;
+    border: 1px solid #f5c2c2;
+    color: #b00;
+}
+
+.acc-message--success {
+    background: #f1fbf3;
+    border: 1px solid #bfe6c8;
+    color: #1e7a34;
+}
+
+.acc-segment {
+    display: flex;
+    gap: 8px;
+}
+
+.acc-segment__btn {
+    flex: 1;
+    padding: 9px 0;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+}
+
+.acc-segment__btn--active {
+    border-color: #5b6af5;
+    background: #eef0ff;
+    color: #3b4acc;
+}
+
+.acc-loading {
+    color: #888;
+    font-size: 0.9rem;
+}

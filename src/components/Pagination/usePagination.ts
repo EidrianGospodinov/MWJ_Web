@@ -1,10 +1,13 @@
 import React from 'react';
+import {getRowsPerPagePreference} from '../../utils/preferences';
 
 export const ROWS_PER_PAGE_OPTIONS = [5, 10, 20];
 
-export function usePagination<T>(items: T[], initialRowsPerPage = 10) {
+export function usePagination<T>(items: T[], initialRowsPerPage?: number) {
     const [page, setPage] = React.useState(1);
-    const [rowsPerPage, setRowsPerPage] = React.useState(initialRowsPerPage);
+    const [rowsPerPage, setRowsPerPage] = React.useState(
+        () => initialRowsPerPage ?? getRowsPerPagePreference()
+    );
 
     const pageCount = Math.max(1, Math.ceil(items.length / rowsPerPage));
     const safePage = Math.min(page, pageCount);
