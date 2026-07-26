@@ -65,6 +65,8 @@ const schema = a.schema({
       name: a.string().required(),
       description: a.string(),
       committeeMembers: a.string(),
+      committee: a.json(),
+      timetable: a.json(),
       website: a.string(),
       instagram: a.string(),
       whatsapp: a.string(),

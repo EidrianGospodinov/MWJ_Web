@@ -7,6 +7,17 @@ import Pagination from '../components/Pagination/Pagination';
 import {usePagination} from '../components/Pagination/usePagination';
 import {friendlyError} from '../utils/errors';
 import {logAudit} from '../utils/audit';
+import {
+    CAMPUSES,
+    DAYS,
+    DEFAULT_ROLES,
+    committeeToText,
+    parseCommittee,
+    parseTimetable,
+    sessionLabel,
+    type CommitteeMember,
+    type TimetableSession,
+} from '../utils/societyData';
 import './ContentManagerPage.css';
 
 type SocietyRecord = Schema['Society']['type'];
@@ -14,7 +25,8 @@ type SocietyRecord = Schema['Society']['type'];
 export default function SocietiesPage() {
     const [name, setName] = React.useState('');
     const [description, setDescription] = React.useState('');
-    const [committeeMembers, setCommitteeMembers] = React.useState('');
+    const [committee, setCommittee] = React.useState<CommitteeMember[]>([]);
+    const [timetable, setTimetable] = React.useState<TimetableSession[]>([]);
     const [website, setWebsite] = React.useState('');
     const [instagram, setInstagram] = React.useState('');
     const [whatsapp, setWhatsapp] = React.useState('');
@@ -37,6 +49,19 @@ export default function SocietiesPage() {
 
     const societiesPag = usePagination(sorted);
 
+    const knownRoles = React.useMemo(() => {
+        const set = new Set<string>(DEFAULT_ROLES);
+        societies.forEach((s) => {
+            parseCommittee(s.committee, s.committeeMembers).forEach((m) => {
+                if (m.role.trim()) set.add(m.role.trim());
+            });
+        });
+        committee.forEach((m) => {
+            if (m.role.trim()) set.add(m.role.trim());
+        });
+        return Array.from(set).sort((a, b) => a.localeCompare(b));
+    }, [societies, committee]);
+
     const fetchSocieties = async () => {
         if (!client.models.Society) return;
         try {
@@ -56,12 +81,49 @@ export default function SocietiesPage() {
     const resetFields = () => {
         setName('');
         setDescription('');
-        setCommitteeMembers('');
+        setCommittee([]);
+        setTimetable([]);
         setWebsite('');
         setInstagram('');
         setWhatsapp('');
         setLogoKey(null);
         setEditingId(null);
+    };
+
+    const addMember = () => {
+        const used = new Set(committee.map((m) => m.role));
+        const nextRole = DEFAULT_ROLES.find((r) => !used.has(r)) ?? '';
+        setCommittee((prev) => [...prev, {id: crypto.randomUUID(), role: nextRole, name: ''}]);
+    };
+
+    const updateMember = (id: string, patch: Partial<CommitteeMember>) => {
+        setCommittee((prev) => prev.map((m) => (m.id === id ? {...m, ...patch} : m)));
+    };
+
+    const removeMember = (id: string) => {
+        setCommittee((prev) => prev.filter((m) => m.id !== id));
+    };
+
+    const addSession = () => {
+        setTimetable((prev) => [
+            ...prev,
+            {
+                id: crypto.randomUUID(),
+                day: DAYS[0],
+                startTime: '18:00',
+                endTime: '20:00',
+                campus: CAMPUSES[0],
+                location: '',
+            },
+        ]);
+    };
+
+    const updateSession = (id: string, patch: Partial<TimetableSession>) => {
+        setTimetable((prev) => prev.map((s) => (s.id === id ? {...s, ...patch} : s)));
+    };
+
+    const removeSession = (id: string) => {
+        setTimetable((prev) => prev.filter((s) => s.id !== id));
     };
 
     const saveSociety = async () => {
@@ -73,12 +135,26 @@ export default function SocietiesPage() {
             alert('The Society model is not deployed yet.');
             return;
         }
+        const cleanCommittee = committee
+            .map((m) => ({...m, role: m.role.trim(), name: m.name.trim()}))
+            .filter((m) => m.role !== '' || m.name !== '');
+        const incomplete = cleanCommittee.find((m) => m.role === '' || m.name === '');
+        if (incomplete) {
+            alert('Each committee member needs both a role and a name.');
+            return;
+        }
+        const cleanTimetable = timetable
+            .map((s) => ({...s, location: s.location.trim()}))
+            .filter((s) => s.day || s.campus || s.location);
+
         setSaving(true);
         try {
             const payload = {
                 name: name.trim(),
                 description,
-                committeeMembers,
+                committee: JSON.stringify(cleanCommittee),
+                timetable: JSON.stringify(cleanTimetable),
+                committeeMembers: committeeToText(cleanCommittee),
                 website,
                 instagram,
                 whatsapp,
@@ -98,7 +174,12 @@ export default function SocietiesPage() {
                 });
                 if (errors?.length) throw new Error(errors[0].message);
             }
-            logAudit('Societies', editingId ? 'updated' : 'created', name.trim());
+            logAudit(
+                'Societies',
+                editingId ? 'updated' : 'created',
+                name.trim(),
+                `${cleanCommittee.length} committee · ${cleanTimetable.length} session(s)`
+            );
             resetFields();
             await fetchSocieties();
         } catch (err) {
@@ -112,13 +193,14 @@ export default function SocietiesPage() {
     const startEdit = (society: SocietyRecord) => {
         setName(society.name);
         setDescription(society.description ?? '');
-        setCommitteeMembers(society.committeeMembers ?? '');
+        setCommittee(parseCommittee(society.committee, society.committeeMembers));
+        setTimetable(parseTimetable(society.timetable));
         setWebsite(society.website ?? '');
         setInstagram(society.instagram ?? '');
         setWhatsapp(society.whatsapp ?? '');
         setLogoKey(society.logoKey ?? null);
         setEditingId(society.id);
-        window.scrollTo({top: 0, behavior: 'smooth'});
+        document.querySelector('.content-area')?.scrollTo({top: 0, behavior: 'smooth'});
     };
 
     const deleteSociety = async (id: string) => {
@@ -154,6 +236,12 @@ export default function SocietiesPage() {
                 </div>
             )}
 
+            <datalist id="society-role-options">
+                {knownRoles.map((r) => (
+                    <option key={r} value={r} />
+                ))}
+            </datalist>
+
             <div className="cm-body">
 
                 <aside className="cm-left">
@@ -174,37 +262,6 @@ export default function SocietiesPage() {
                     <div className="cm-card">
                         <span className="cm-section-label">Society Logo</span>
                         <ThumbnailUploader thumbnailKey={logoKey} onChange={setLogoKey}/>
-                    </div>
-                </aside>
-
-                <div className="cm-right">
-
-                    <div className="cm-card">
-                        <label className="cm-section-label" htmlFor="society-description">
-                            Description
-                        </label>
-                        <textarea
-                            id="society-description"
-                            className="cm-title-input"
-                            rows={4}
-                            placeholder="What is this society about? Who is it for?"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="cm-card">
-                        <label className="cm-section-label" htmlFor="society-committee">
-                            Committee Members
-                        </label>
-                        <textarea
-                            id="society-committee"
-                            className="cm-title-input"
-                            rows={3}
-                            placeholder="Names and roles, one per line…"
-                            value={committeeMembers}
-                            onChange={(e) => setCommitteeMembers(e.target.value)}
-                        />
                     </div>
 
                     <div className="cm-card">
@@ -243,6 +300,143 @@ export default function SocietiesPage() {
                             onChange={(e) => setWhatsapp(e.target.value)}
                         />
                     </div>
+                </aside>
+
+                <div className="cm-right">
+
+                    <div className="cm-card">
+                        <label className="cm-section-label" htmlFor="society-description">
+                            Description
+                        </label>
+                        <textarea
+                            id="society-description"
+                            className="cm-title-input"
+                            rows={4}
+                            placeholder="What is this society about? Who is it for?"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="cm-card">
+                        <span className="cm-section-label">Committee Members</span>
+                        {committee.length === 0 ? (
+                            <p className="cm-empty-state">No committee members yet.</p>
+                        ) : (
+                            <div className="soc-rows">
+                                <div className="soc-row soc-row--head">
+                                    <span className="cm-section-label">Role</span>
+                                    <span className="cm-section-label">Name</span>
+                                    <span/>
+                                </div>
+                                {committee.map((m) => (
+                                    <div key={m.id} className="soc-row">
+                                        <input
+                                            className="cm-title-input"
+                                            list="society-role-options"
+                                            placeholder="e.g. President"
+                                            value={m.role}
+                                            onChange={(e) => updateMember(m.id, {role: e.target.value})}
+                                        />
+                                        <input
+                                            className="cm-title-input"
+                                            type="text"
+                                            placeholder="Full name"
+                                            value={m.name}
+                                            onChange={(e) => updateMember(m.id, {name: e.target.value})}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="soc-remove"
+                                            onClick={() => removeMember(m.id)}
+                                            aria-label="Remove member"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <button type="button" className="cm-add-row" onClick={addMember}>
+                            + Add committee member
+                        </button>
+                        <span className="cm-hint">
+                            Pick a suggested role or type a new one — new roles become suggestions for every society.
+                        </span>
+                    </div>
+
+                    <div className="cm-card">
+                        <span className="cm-section-label">Timetable &amp; Location</span>
+                        {timetable.length === 0 ? (
+                            <p className="cm-empty-state">No sessions yet.</p>
+                        ) : (
+                            <div className="soc-rows">
+                                <div className="soc-session soc-row--head">
+                                    <span className="cm-section-label">Day</span>
+                                    <span className="cm-section-label">Start</span>
+                                    <span className="cm-section-label">End</span>
+                                    <span className="cm-section-label">Campus</span>
+                                    <span className="cm-section-label">Room / place</span>
+                                    <span/>
+                                </div>
+                                {timetable.map((s) => (
+                                    <div key={s.id} className="soc-session">
+                                        <select
+                                            className="cm-title-input"
+                                            value={s.day}
+                                            onChange={(e) => updateSession(s.id, {day: e.target.value})}
+                                        >
+                                            {DAYS.map((d) => (
+                                                <option key={d} value={d}>{d}</option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            className="cm-title-input"
+                                            type="time"
+                                            value={s.startTime}
+                                            onChange={(e) => updateSession(s.id, {startTime: e.target.value})}
+                                        />
+                                        <input
+                                            className="cm-title-input"
+                                            type="time"
+                                            value={s.endTime}
+                                            onChange={(e) => updateSession(s.id, {endTime: e.target.value})}
+                                        />
+                                        <select
+                                            className="cm-title-input"
+                                            value={s.campus}
+                                            onChange={(e) => updateSession(s.id, {campus: e.target.value})}
+                                        >
+                                            {CAMPUSES.map((c) => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            className="cm-title-input"
+                                            type="text"
+                                            placeholder="e.g. Gym, Room C1.05"
+                                            value={s.location}
+                                            onChange={(e) => updateSession(s.id, {location: e.target.value})}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="soc-remove"
+                                            onClick={() => removeSession(s.id)}
+                                            aria-label="Remove session"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <button type="button" className="cm-add-row" onClick={addSession}>
+                            + Add session
+                        </button>
+                        <span className="cm-hint">
+                            Add one row per weekly session so students know when and where to turn up.
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -270,44 +464,57 @@ export default function SocietiesPage() {
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Description</th>
                                     <th>Committee</th>
+                                    <th>Sessions</th>
                                     <th>Links</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {societiesPag.pageItems.map((s) => (
-                                    <tr
-                                        key={s.id}
-                                        className={editingId === s.id ? 'rh-row--editing' : ''}
-                                    >
-                                        <td className="rh-cell--title">{s.name}</td>
-                                        <td>{s.description ? s.description.slice(0, 60) : '—'}</td>
-                                        <td>
-                                            {s.committeeMembers
-                                                ? `${s.committeeMembers.split('\n').filter(Boolean).length} listed`
-                                                : '—'}
-                                        </td>
-                                        <td>{linkCount(s) > 0 ? `${linkCount(s)} link(s)` : '—'}</td>
-                                        <td>
-                                            <div className="rh-actions">
-                                                <button
-                                                    className="cm-existing__edit"
-                                                    onClick={() => startEdit(s)}
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    className="cm-existing__delete"
-                                                    onClick={() => deleteSociety(s.id)}
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {societiesPag.pageItems.map((s) => {
+                                    const members = parseCommittee(s.committee, s.committeeMembers);
+                                    const sessions = parseTimetable(s.timetable);
+                                    return (
+                                        <tr
+                                            key={s.id}
+                                            className={editingId === s.id ? 'rh-row--editing' : ''}
+                                        >
+                                            <td className="rh-cell--title">{s.name}</td>
+                                            <td>
+                                                {members.length === 0
+                                                    ? '—'
+                                                    : members
+                                                        .slice(0, 2)
+                                                        .map((m) => `${m.role}: ${m.name}`)
+                                                        .join(' · ') +
+                                                      (members.length > 2 ? ` +${members.length - 2}` : '')}
+                                            </td>
+                                            <td>
+                                                {sessions.length === 0
+                                                    ? '—'
+                                                    : sessionLabel(sessions[0]) +
+                                                      (sessions.length > 1 ? ` +${sessions.length - 1}` : '')}
+                                            </td>
+                                            <td>{linkCount(s) > 0 ? `${linkCount(s)} link(s)` : '—'}</td>
+                                            <td>
+                                                <div className="rh-actions">
+                                                    <button
+                                                        className="cm-existing__edit"
+                                                        onClick={() => startEdit(s)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        className="cm-existing__delete"
+                                                        onClick={() => deleteSociety(s.id)}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                         <Pagination
