@@ -6,10 +6,18 @@ import type {Block} from '../types/Blocks';
 import BlockItem from '../components/BlockItem/BlockItem';
 import BlockPreview from '../components/BlockPreview/BlockPreview';
 import ThumbnailUploader from '../components/ThumbnailUploader/ThumbnailUploader';
+import MediaPicker from '../components/MediaPicker/MediaPicker';
 import Pagination from '../components/Pagination/Pagination';
 import {usePagination} from '../components/Pagination/usePagination';
 import {friendlyError} from '../utils/errors';
 import {logAudit} from '../utils/audit';
+import {
+    CONTENT_TYPES,
+    CONTENT_TYPE_HINTS,
+    NEWS_CATEGORIES,
+    normaliseContentType,
+    type ContentType,
+} from '../utils/contentTypes';
 import './ContentManagerPage.css';
 
 type BlockType = Block['type'];
@@ -39,8 +47,18 @@ export default function ContentManagerPage() {
     const debugShowJson = false;
 
     const [title, setTitle] = React.useState('');
+    const [contentType, setContentType] = React.useState<ContentType>('Module');
+    const [typeFilter, setTypeFilter] = React.useState<ContentType | 'All'>('All');
     const [thumbnailKey, setThumbnailKey] = React.useState<string | null>(null);
     const [isRecommended, setIsRecommended] = React.useState(false);
+    const [description, setDescription] = React.useState('');
+    const [mediaKey, setMediaKey] = React.useState<string | null>(null);
+    const [mediaType, setMediaType] = React.useState<'image' | 'video' | null>(null);
+    const [category, setCategory] = React.useState(NEWS_CATEGORIES[0]);
+    const [ctaLabel, setCtaLabel] = React.useState('');
+    const [ctaUrl, setCtaUrl] = React.useState('');
+    const [hashtags, setHashtags] = React.useState('');
+    const [isPinned, setIsPinned] = React.useState(false);
     const [blocks, setBlocks] = React.useState<Block[]>([]);
     const [activeId, setActiveId] = React.useState<string | null>(null);
     const [dragIdx, setDragIdx] = React.useState<number | null>(null);
@@ -90,34 +108,53 @@ export default function ContentManagerPage() {
     // ── Persistence ───────────────────────────────────────────
     const saveData = async () => {
         if (!title.trim()) {
-            alert('Please enter a module title before saving.');
+            alert('Please enter a title before saving.');
             return;
         }
+        const isModule = contentType === 'Module';
+        if (!isModule && !description.trim()) {
+            alert('Please enter a description before saving.');
+            return;
+        }
+        if (contentType === 'News' && ctaUrl.trim() && !/^https?:\/\//i.test(ctaUrl.trim())) {
+            alert('The call to action link must start with http:// or https://');
+            return;
+        }
+        const typePayload = {
+            contentType,
+            blocks: isModule ? JSON.stringify(blocks) : '[]',
+            thumbnailKey: isModule ? thumbnailKey : null,
+            isRecommended: isModule ? isRecommended : false,
+            description: isModule ? null : description.trim(),
+            mediaKey: isModule ? null : mediaKey,
+            mediaType: isModule ? null : mediaType,
+            category: contentType === 'News' ? category : null,
+            ctaLabel: contentType === 'News' ? ctaLabel.trim() : null,
+            ctaUrl: contentType === 'News' ? ctaUrl.trim() : null,
+            hashtags: contentType === 'Social' ? hashtags.trim() : null,
+            isPinned: contentType === 'Social' ? isPinned : false,
+        };
         try {
             if (editingId) {
                 const result = await client.models.ContentManagement.update({
                     id: editingId,
                     title,
-                    blocks: JSON.stringify(blocks),
-                    thumbnailKey,
-                    isRecommended,
+                    ...typePayload,
                 });
                 console.log('updated', result);
-                logAudit('Content', 'updated', title);
+                logAudit('Content', 'updated', title, contentType);
             } else {
                 const createdBy = await getCurrentUser()
                     .then((u) => u.signInDetails?.loginId ?? u.username)
                     .catch(() => undefined);
                 const result = await client.models.ContentManagement.create({
                     title,
-                    blocks: JSON.stringify(blocks),
                     visibility: 'Public',
                     createdBy,
-                    thumbnailKey,
-                    isRecommended,
+                    ...typePayload,
                 });
                 console.log('saved', result);
-                logAudit('Content', 'created', title);
+                logAudit('Content', 'created', title, contentType);
             }
             resetContentManagerFields();
             await fetchContent();
@@ -159,6 +196,7 @@ export default function ContentManagerPage() {
             await client.models.ContentManagement.create({
                 title: duplicatedTitle,
                 blocks: item.blocks,
+                contentType: normaliseContentType(item.contentType),
                 visibility: item.visibility,
                 thumbnailKey: item.thumbnailKey,
                 createdBy,
@@ -173,20 +211,42 @@ export default function ContentManagerPage() {
         }
     };
 
+    function resetTypeFields(): void {
+        setDescription('');
+        setMediaKey(null);
+        setMediaType(null);
+        setCategory(NEWS_CATEGORIES[0]);
+        setCtaLabel('');
+        setCtaUrl('');
+        setHashtags('');
+        setIsPinned(false);
+    }
+
     function resetContentManagerFields(): void {
         setTitle('');
+        setContentType('Module');
         setThumbnailKey(null);
         setIsRecommended(false);
         setBlocks([]);
         setActiveId(null);
         setEditingId(null);
+        resetTypeFields();
     }
 
     const startEdit = (item: Schema['ContentManagement']['type']) => {
         setTitle(item.title);
+        setContentType(normaliseContentType(item.contentType));
         setThumbnailKey(item.thumbnailKey ?? null);
         setIsRecommended(item.isRecommended ?? false);
         setBlocks(JSON.parse(String(item.blocks ?? '[]')));
+        setDescription(item.description ?? '');
+        setMediaKey(item.mediaKey ?? null);
+        setMediaType(item.mediaType === 'video' ? 'video' : item.mediaKey ? 'image' : null);
+        setCategory(item.category ?? NEWS_CATEGORIES[0]);
+        setCtaLabel(item.ctaLabel ?? '');
+        setCtaUrl(item.ctaUrl ?? '');
+        setHashtags(item.hashtags ?? '');
+        setIsPinned(item.isPinned ?? false);
         setEditingId(item.id);
         setActiveId(null);
         document.querySelector('.content-area')?.scrollTo({top: 0, behavior: 'smooth'});
@@ -213,13 +273,15 @@ export default function ContentManagerPage() {
 
     const sortedContent = React.useMemo(
         () =>
-            [...savedContent].sort((a, b) => {
-                const ao = a.displayOrder ?? Number.MAX_SAFE_INTEGER;
-                const bo = b.displayOrder ?? Number.MAX_SAFE_INTEGER;
-                if (ao !== bo) return ao - bo;
-                return String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
-            }),
-        [savedContent]
+            [...savedContent]
+                .filter((c) => typeFilter === 'All' || normaliseContentType(c.contentType) === typeFilter)
+                .sort((a, b) => {
+                    const ao = a.displayOrder ?? Number.MAX_SAFE_INTEGER;
+                    const bo = b.displayOrder ?? Number.MAX_SAFE_INTEGER;
+                    if (ao !== bo) return ao - bo;
+                    return String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
+                }),
+        [savedContent, typeFilter]
     );
 
     const moveModule = async (index: number, direction: -1 | 1) => {
@@ -249,13 +311,8 @@ export default function ContentManagerPage() {
     }, []);
 
     const handleCancel = () => {
-        setTitle('');
-        setThumbnailKey(null);
-        setIsRecommended(false);
-        setBlocks([]);
-        setActiveId(null);
         setShowList(false);
-        setEditingId(null);
+        resetContentManagerFields();
     };
 
     return (
@@ -265,56 +322,209 @@ export default function ContentManagerPage() {
             <div className="cm-body">
 
                 <aside className="cm-left">
+                    <div className="cm-card cm-card--compact">
+                        <span className="cm-section-label">Content Type</span>
+                        <div className="cm-segment" role="group" aria-label="Content type">
+                            {CONTENT_TYPES.map((option) => (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    className={`cm-segment__btn${contentType === option ? ' cm-segment__btn--active' : ''}`}
+                                    onClick={() => { setContentType(option); if (!editingId) resetTypeFields(); }}
+                                >
+                                    {option}
+                                </button>
+                            ))}
+                        </div>
+                        <span className="cm-hint">{CONTENT_TYPE_HINTS[contentType]}</span>
+                    </div>
+
                     <div className="cm-card">
                         <label className="cm-section-label" htmlFor="module-title">
-                            Module Title
+                            {contentType === 'Module' ? 'Module Title' : contentType === 'News' ? 'Headline' : 'Post Title'}
                         </label>
                         <input
                             id="module-title"
                             className="cm-title-input"
                             type="text"
-                            placeholder="Enter module title…"
+                            placeholder={
+                                contentType === 'Module'
+                                    ? 'Enter module title…'
+                                    : contentType === 'News'
+                                    ? 'Enter headline…'
+                                    : 'Enter a short post title…'
+                            }
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                         />
-                        <label className="cm-toggle cm-toggle--sm">
-                            <span className="cm-toggle__text">Recommend on homepage</span>
-                            <input
-                                type="checkbox"
-                                className="cm-toggle__input"
-                                checked={isRecommended}
-                                onChange={(e) => setIsRecommended(e.target.checked)}
-                            />
-                            <span className="cm-toggle__track">
-                                <span className="cm-toggle__thumb"/>
+                        {contentType === 'Module' && (
+                            <label className="cm-toggle cm-toggle--sm">
+                                <span className="cm-toggle__text">Recommend on homepage</span>
+                                <input
+                                    type="checkbox"
+                                    className="cm-toggle__input"
+                                    checked={isRecommended}
+                                    onChange={(e) => setIsRecommended(e.target.checked)}
+                                />
+                                <span className="cm-toggle__track">
+                                    <span className="cm-toggle__thumb"/>
+                                </span>
+                            </label>
+                        )}
+                    </div>
+
+                    {contentType === 'Module' && (
+                        <>
+                            <div className="cm-card">
+                                <span className="cm-section-label">Module Thumbnail</span>
+                                <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
+                            </div>
+
+                            <div className="cm-card">
+                                <span className="cm-section-label">Add Content Block</span>
+                                <div className="cm-add-stack">
+                                    {BLOCK_BUTTONS.map(({type, label}) => (
+                                        <button
+                                            key={type}
+                                            className={`cm-add-btn cm-add-btn--${type}`}
+                                            onClick={() => addBlock(type)}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {contentType === 'News' && (
+                        <div className="cm-card">
+                            <label className="cm-section-label" htmlFor="news-category">
+                                News Category
+                            </label>
+                            <select
+                                id="news-category"
+                                className="cm-title-input"
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                            >
+                                {NEWS_CATEGORIES.map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                            <span className="cm-hint">
+                                Shown as a tag on the news card and article header.
                             </span>
-                        </label>
-                    </div>
-
-                    <div className="cm-card">
-                        <span className="cm-section-label">Module Thumbnail</span>
-                        <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
-                    </div>
-
-                    <div className="cm-card">
-                        <span className="cm-section-label">Add Content Block</span>
-                        <div className="cm-add-stack">
-                            {BLOCK_BUTTONS.map(({type, label}) => (
-                                <button
-                                    key={type}
-                                    className={`cm-add-btn cm-add-btn--${type}`}
-                                    onClick={() => addBlock(type)}
-                                >
-                                    {label}
-                                </button>
-                            ))}
                         </div>
-                    </div>
+                    )}
+
+                    {contentType === 'Social' && (
+                        <div className="cm-card">
+                            <span className="cm-section-label">Feed Placement</span>
+                            <label className="cm-toggle cm-toggle--sm">
+                                <span className="cm-toggle__text">Pin to top of feed</span>
+                                <input
+                                    type="checkbox"
+                                    className="cm-toggle__input"
+                                    checked={isPinned}
+                                    onChange={(e) => setIsPinned(e.target.checked)}
+                                />
+                                <span className="cm-toggle__track">
+                                    <span className="cm-toggle__thumb"/>
+                                </span>
+                            </label>
+                            <span className="cm-hint">
+                                Pinned posts appear first on the app home feed, above newer posts.
+                            </span>
+                        </div>
+                    )}
                 </aside>
 
                 {/* ── Right Column ────────────────────────── */}
                 <div className="cm-right">
 
+                    {contentType !== 'Module' && (
+                        <>
+                            <div className="cm-card">
+                                <label className="cm-section-label" htmlFor="ct-description">
+                                    Description
+                                </label>
+                                <textarea
+                                    id="ct-description"
+                                    className="cm-title-input"
+                                    rows={contentType === 'News' ? 6 : 4}
+                                    placeholder={
+                                        contentType === 'News'
+                                            ? 'Write the article…'
+                                            : 'Write the post caption…'
+                                    }
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="cm-card">
+                                <span className="cm-section-label">Photo or Video</span>
+                                <MediaPicker
+                                    mediaKey={mediaKey}
+                                    mediaType={mediaType}
+                                    onChange={(key, type) => { setMediaKey(key); setMediaType(type); }}
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {contentType === 'News' && (
+                        <div className="cm-card">
+                            <span className="cm-section-label">Call to Action</span>
+                            <label className="cm-section-label" htmlFor="news-cta-label">
+                                Button text
+                            </label>
+                            <input
+                                id="news-cta-label"
+                                className="cm-title-input"
+                                type="text"
+                                placeholder="e.g. Register now"
+                                value={ctaLabel}
+                                onChange={(e) => setCtaLabel(e.target.value)}
+                            />
+                            <label className="cm-section-label" htmlFor="news-cta-url">
+                                Link
+                            </label>
+                            <input
+                                id="news-cta-url"
+                                className="cm-title-input"
+                                type="url"
+                                placeholder="https://…"
+                                value={ctaUrl}
+                                onChange={(e) => setCtaUrl(e.target.value)}
+                            />
+                            <span className="cm-hint">
+                                Optional. Shown as a button at the bottom of the article.
+                            </span>
+                        </div>
+                    )}
+
+                    {contentType === 'Social' && (
+                        <div className="cm-card">
+                            <label className="cm-section-label" htmlFor="social-hashtags">
+                                Hashtags
+                            </label>
+                            <input
+                                id="social-hashtags"
+                                className="cm-title-input"
+                                type="text"
+                                placeholder="#WestminsterLife #FreshersWeek"
+                                value={hashtags}
+                                onChange={(e) => setHashtags(e.target.value)}
+                            />
+                            <span className="cm-hint">
+                                Separate with spaces. Shown under the caption in the app feed.
+                            </span>
+                        </div>
+                    )}
+
+                    {contentType === 'Module' && (
                     <div className="cm-card">
                         <span className="cm-section-label">Block Editor</span>
                         {blocks.length === 0 ? (
@@ -342,20 +552,25 @@ export default function ContentManagerPage() {
                             </div>
                         )}
                     </div>
+                    )}
 
-                    <div className="cm-card">
-                        <span className="cm-section-label">Block Preview</span>
-                        <BlockPreview block={activeBlock} setBlocks={setBlocks}/>
-                    </div>
+                    {contentType === 'Module' && (
+                        <div className="cm-card">
+                            <span className="cm-section-label">Block Preview</span>
+                            <BlockPreview block={activeBlock} setBlocks={setBlocks}/>
+                        </div>
+                    )}
 
-                    <button
-                        className="cm-list-toggle"
-                        onClick={() => setShowList((v) => !v)}
-                    >
-                        {showList ? 'Hide block list' : 'List all blocks'}
-                    </button>
+                    {contentType === 'Module' && (
+                        <button
+                            className="cm-list-toggle"
+                            onClick={() => setShowList((v) => !v)}
+                        >
+                            {showList ? 'Hide block list' : 'List all blocks'}
+                        </button>
+                    )}
 
-                    {showList && (
+                    {contentType === 'Module' && showList && (
                         <div className="cm-card cm-block-directory">
                             <span className="cm-section-label">All Blocks</span>
                             {blocks.length === 0 ? (
@@ -396,9 +611,27 @@ export default function ContentManagerPage() {
             </pre>)}
 
             <div className="cm-existing">
-                <h2 className="cm-existing__heading">Existing Content</h2>
-                {savedContent.length === 0 ? (
-                    <p className="cm-empty-state">No saved content yet.</p>
+                <div className="cm-existing__header-row">
+                    <h2 className="cm-existing__heading">Existing Content</h2>
+                    <div className="cm-segment cm-segment--filter" role="group" aria-label="Filter by type">
+                        {(['All', ...CONTENT_TYPES] as (ContentType | 'All')[]).map((option) => (
+                            <button
+                                key={option}
+                                type="button"
+                                className={`cm-segment__btn${typeFilter === option ? ' cm-segment__btn--active' : ''}`}
+                                onClick={() => setTypeFilter(option)}
+                            >
+                                {option}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                {sortedContent.length === 0 ? (
+                    <p className="cm-empty-state">
+                        {savedContent.length === 0
+                            ? 'No saved content yet.'
+                            : `No ${typeFilter} content yet.`}
+                    </p>
                 ) : (
                     <>
                         <table className="rh-table">
@@ -406,6 +639,7 @@ export default function ContentManagerPage() {
                                 <tr>
                                     <th>Order</th>
                                     <th>Title</th>
+                                    <th>Type</th>
                                     <th>Created</th>
                                     <th>Author</th>
                                     <th>Visibility</th>
@@ -441,6 +675,7 @@ export default function ContentManagerPage() {
                                                 </div>
                                             </td>
                                             <td className="rh-cell--title">{item.title}</td>
+                                            <td>{normaliseContentType(item.contentType)}</td>
                                             <td>
                                                 {item.createdAt
                                                     ? new Date(item.createdAt).toLocaleString(undefined, {
