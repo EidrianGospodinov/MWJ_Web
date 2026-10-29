@@ -15,6 +15,8 @@ import {
     CONTENT_TYPES,
     CONTENT_TYPE_HINTS,
     NEWS_CATEGORIES,
+    TOPIC_CATEGORIES,
+    DEFAULT_TOPIC_CATEGORY,
     normaliseContentType,
     type ContentType,
 } from '../utils/contentTypes';
@@ -55,6 +57,7 @@ export default function ContentManagerPage() {
     const [mediaKey, setMediaKey] = React.useState<string | null>(null);
     const [mediaType, setMediaType] = React.useState<'image' | 'video' | null>(null);
     const [category, setCategory] = React.useState(NEWS_CATEGORIES[0]);
+    const [topicCategory, setTopicCategory] = React.useState(DEFAULT_TOPIC_CATEGORY);
     const [ctaLabel, setCtaLabel] = React.useState('');
     const [ctaUrl, setCtaUrl] = React.useState('');
     const [hashtags, setHashtags] = React.useState('');
@@ -128,7 +131,7 @@ export default function ContentManagerPage() {
             description: isModule ? null : description.trim(),
             mediaKey: isModule ? null : mediaKey,
             mediaType: isModule ? null : mediaType,
-            category: contentType === 'News' ? category : null,
+            category: contentType === 'News' ? category : isModule ? topicCategory : null,
             ctaLabel: contentType === 'News' ? ctaLabel.trim() : null,
             ctaUrl: contentType === 'News' ? ctaUrl.trim() : null,
             hashtags: contentType === 'Social' ? hashtags.trim() : null,
@@ -216,6 +219,7 @@ export default function ContentManagerPage() {
         setMediaKey(null);
         setMediaType(null);
         setCategory(NEWS_CATEGORIES[0]);
+        setTopicCategory(DEFAULT_TOPIC_CATEGORY);
         setCtaLabel('');
         setCtaUrl('');
         setHashtags('');
@@ -242,7 +246,9 @@ export default function ContentManagerPage() {
         setDescription(item.description ?? '');
         setMediaKey(item.mediaKey ?? null);
         setMediaType(item.mediaType === 'video' ? 'video' : item.mediaKey ? 'image' : null);
-        setCategory(item.category ?? NEWS_CATEGORIES[0]);
+        const isModuleItem = normaliseContentType(item.contentType) === 'Module';
+        setCategory(!isModuleItem && item.category ? item.category : NEWS_CATEGORIES[0]);
+        setTopicCategory(isModuleItem && item.category && TOPIC_CATEGORIES.includes(item.category) ? item.category : DEFAULT_TOPIC_CATEGORY);
         setCtaLabel(item.ctaLabel ?? '');
         setCtaUrl(item.ctaUrl ?? '');
         setHashtags(item.hashtags ?? '');
@@ -375,6 +381,25 @@ export default function ContentManagerPage() {
 
                     {contentType === 'Module' && (
                         <>
+                            <div className="cm-card">
+                                <label className="cm-section-label" htmlFor="topic-category">
+                                    Topic Category
+                                </label>
+                                <select
+                                    id="topic-category"
+                                    className="cm-title-input"
+                                    value={topicCategory}
+                                    onChange={(e) => setTopicCategory(e.target.value)}
+                                >
+                                    {TOPIC_CATEGORIES.map((c) => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
+                                <span className="cm-hint">
+                                    Students can filter the Topics tab by category. Topics without one appear under “General”.
+                                </span>
+                            </div>
+
                             <div className="cm-card">
                                 <span className="cm-section-label">Module Thumbnail</span>
                                 <ThumbnailUploader thumbnailKey={thumbnailKey} onChange={setThumbnailKey}/>
@@ -640,6 +665,7 @@ export default function ContentManagerPage() {
                                     <th>Order</th>
                                     <th>Title</th>
                                     <th>Type</th>
+                                    <th>Category</th>
                                     <th>Created</th>
                                     <th>Author</th>
                                     <th>Visibility</th>
@@ -676,6 +702,11 @@ export default function ContentManagerPage() {
                                             </td>
                                             <td className="rh-cell--title">{item.title}</td>
                                             <td>{normaliseContentType(item.contentType)}</td>
+                                            <td>
+                                                {normaliseContentType(item.contentType) === 'Social'
+                                                    ? '—'
+                                                    : item.category ?? (normaliseContentType(item.contentType) === 'Module' ? DEFAULT_TOPIC_CATEGORY : '—')}
+                                            </td>
                                             <td>
                                                 {item.createdAt
                                                     ? new Date(item.createdAt).toLocaleString(undefined, {

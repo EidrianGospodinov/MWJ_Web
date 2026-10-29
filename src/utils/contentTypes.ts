@@ -14,6 +14,20 @@ export const CONTENT_TYPE_HINTS: Record<ContentType, string> = {
     Social: 'Appears inline on the app’s Home feed as a social post. It does not open a page.',
 };
 
+// Keep in sync with lib/topic-categories.ts in the mobile app (LearningReactNative).
+// The app's Topics tab groups and filters modules by these. "General" is the fallback.
+export const TOPIC_CATEGORIES = [
+    'Getting Started',
+    'Study Skills',
+    'Wellbeing',
+    'Careers & Employability',
+    'Campus Life',
+    'Money & Finance',
+    'General',
+];
+
+export const DEFAULT_TOPIC_CATEGORY = 'General';
+
 export const NEWS_CATEGORIES = [
     'Announcement',
     'Event',
