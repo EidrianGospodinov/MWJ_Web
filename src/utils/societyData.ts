@@ -13,6 +13,19 @@ export type TimetableSession = {
     location: string;
 };
 
+// Keep in sync with lib/society-categories.ts in the mobile app (LearningReactNative).
+// The app's Explore tab groups and filters societies by these. "Other" is the fallback.
+export const SOCIETY_CATEGORIES = [
+    'Sports',
+    'Course & Academic',
+    'Arts & Entertainment',
+    'Cultural & Faith',
+    'Community & Volunteering',
+    'Other',
+];
+
+export const DEFAULT_SOCIETY_CATEGORY = 'Other';
+
 export const DEFAULT_ROLES = [
     'President',
     'Vice Captain',

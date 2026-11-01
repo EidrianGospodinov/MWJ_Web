@@ -80,6 +80,8 @@ const schema = a.schema({
       instagram: a.string(),
       whatsapp: a.string(),
       logoKey: a.string(),
+      // Grouping on the app's Explore tab — see SOCIETY_CATEGORIES in src/utils/societyData.ts
+      category: a.string(),
       displayOrder: a.integer(),
       createdBy: a.string(),
     })

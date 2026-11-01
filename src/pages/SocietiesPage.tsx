@@ -11,6 +11,8 @@ import {
     CAMPUSES,
     DAYS,
     DEFAULT_ROLES,
+    SOCIETY_CATEGORIES,
+    DEFAULT_SOCIETY_CATEGORY,
     committeeToText,
     parseCommittee,
     parseTimetable,
@@ -31,6 +33,7 @@ export default function SocietiesPage() {
     const [instagram, setInstagram] = React.useState('');
     const [whatsapp, setWhatsapp] = React.useState('');
     const [logoKey, setLogoKey] = React.useState<string | null>(null);
+    const [category, setCategory] = React.useState(DEFAULT_SOCIETY_CATEGORY);
     const [societies, setSocieties] = React.useState<SocietyRecord[]>([]);
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -87,6 +90,7 @@ export default function SocietiesPage() {
         setInstagram('');
         setWhatsapp('');
         setLogoKey(null);
+        setCategory(DEFAULT_SOCIETY_CATEGORY);
         setEditingId(null);
     };
 
@@ -159,6 +163,7 @@ export default function SocietiesPage() {
                 instagram,
                 whatsapp,
                 logoKey,
+                category,
             };
             if (editingId) {
                 const {errors} = await client.models.Society.update({id: editingId, ...payload});
@@ -199,6 +204,7 @@ export default function SocietiesPage() {
         setInstagram(society.instagram ?? '');
         setWhatsapp(society.whatsapp ?? '');
         setLogoKey(society.logoKey ?? null);
+        setCategory(society.category && SOCIETY_CATEGORIES.includes(society.category) ? society.category : DEFAULT_SOCIETY_CATEGORY);
         setEditingId(society.id);
         document.querySelector('.content-area')?.scrollTo({top: 0, behavior: 'smooth'});
     };
@@ -257,6 +263,25 @@ export default function SocietiesPage() {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                         />
+                    </div>
+
+                    <div className="cm-card">
+                        <label className="cm-section-label" htmlFor="society-category">
+                            Category
+                        </label>
+                        <select
+                            id="society-category"
+                            className="cm-title-input"
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                        >
+                            {SOCIETY_CATEGORIES.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                        <span className="cm-hint">
+                            Groups the society on the app’s Explore tab. Societies without one appear under “Other”.
+                        </span>
                     </div>
 
                     <div className="cm-card">
@@ -464,6 +489,7 @@ export default function SocietiesPage() {
                             <thead>
                                 <tr>
                                     <th>Name</th>
+                                    <th>Category</th>
                                     <th>Committee</th>
                                     <th>Sessions</th>
                                     <th>Links</th>
@@ -480,6 +506,7 @@ export default function SocietiesPage() {
                                             className={editingId === s.id ? 'rh-row--editing' : ''}
                                         >
                                             <td className="rh-cell--title">{s.name}</td>
+                                            <td>{s.category ?? DEFAULT_SOCIETY_CATEGORY}</td>
                                             <td>
                                                 {members.length === 0
                                                     ? '—'
