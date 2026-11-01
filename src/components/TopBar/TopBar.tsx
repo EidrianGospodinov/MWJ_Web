@@ -57,6 +57,9 @@ export default function TopBar({ onNavigate, onSignOut, groups }: Props) {
                         {canAccessTab('UserLogs', groups) && (
                             <button className="dropdown-item" onClick={() => navigate('UserLogs')}>User Logs</button>
                         )}
+                        {canAccessTab('Updates', groups) && (
+                            <button className="dropdown-item" onClick={() => navigate('Updates')}>Update Log</button>
+                        )}
                         <div className="dropdown-divider" />
                         <button className="dropdown-item dropdown-logout" onClick={() => { onSignOut(); setDropdownOpen(false); }}>
                             Logout

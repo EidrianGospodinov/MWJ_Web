@@ -1,0 +1,123 @@
+.upd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 24px;
+    align-items: start;
+}
+
+.upd-card {
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.upd-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #eceef2;
+}
+
+.upd-card__title {
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1a1a2e;
+}
+
+.upd-card__latest {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #5b21b6;
+    background: #f3e8ff;
+    border-radius: 999px;
+    padding: 4px 10px;
+    white-space: nowrap;
+}
+
+.upd-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px 24px 20px;
+}
+
+.upd-entry {
+    position: relative;
+    padding: 16px 0 16px 22px;
+    border-left: 2px solid #e5e7eb;
+}
+
+.upd-entry::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 22px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #c4b5fd;
+    border: 2px solid #fff;
+}
+
+.upd-entry--latest {
+    border-left-color: #8b5cf6;
+}
+
+.upd-entry--latest::before {
+    background: #8b5cf6;
+}
+
+.upd-entry__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.upd-entry__version {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #374151;
+    background: #f0f1f5;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-variant-numeric: tabular-nums;
+}
+
+.upd-entry__date {
+    font-size: 0.78rem;
+    color: #6b7280;
+}
+
+.upd-entry__badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #065f46;
+    background: #d1fae5;
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.upd-entry__title {
+    margin: 0 0 8px;
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.upd-entry__items {
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: #374151;
+}

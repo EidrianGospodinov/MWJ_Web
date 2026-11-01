@@ -17,6 +17,7 @@ import RewardsPage from "../pages/RewardsPage.tsx";
 import './DashboardLayout.css';
 import SocietiesPage from "../pages/SocietiesPage.tsx";
 import ResourcesPage from "../pages/ResourcesPage.tsx";
+import UpdatesPage from "../pages/UpdatesPage.tsx";
 
 const PAGE_MAP: Record<Tab, React.ComponentType> = {
     Dashboard: DashboardPage,
@@ -30,6 +31,7 @@ const PAGE_MAP: Record<Tab, React.ComponentType> = {
     Rewards: RewardsPage,
     Resources: ResourcesPage,
     Societies: SocietiesPage,
+    Updates: UpdatesPage,
 };
 
 export default function DashboardLayout() {

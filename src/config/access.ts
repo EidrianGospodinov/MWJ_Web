@@ -13,6 +13,7 @@ export const TAB_ACCESS: Record<Tab, AdminGroup[]> = {
     Settings: ['SuperAdmin', 'ContentAdmin', 'RewardsAdmin'],
     Resources: ['SuperAdmin', 'ContentAdmin'],
     Societies: ['SuperAdmin', 'ContentAdmin'],
+    Updates: ['SuperAdmin', 'ContentAdmin', 'RewardsAdmin'],
 };
 
 export function canAccessTab(tab: Tab, groups: AdminGroup[]): boolean {

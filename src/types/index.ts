@@ -9,4 +9,5 @@ export type Tab =
     | 'UserLogs'
     | 'Rewards'
     | 'Resources'
-    | 'Societies';
+    | 'Societies'
+    | 'Updates';
